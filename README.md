@@ -69,7 +69,3 @@ Pull Requests und Issues sind willkommen!
 ## Entwicklung
 
 Dieses Projekt wurde in enger Zusammenarbeit mit GitHub Copilot entwickelt. Die modulare Architektur, Code-Organisation und Implementierung entstanden durch kollaborative Programmierung zwischen Entwickler und KI-Assistent.
-
-## License
-
-MIT License - siehe [LICENSE](LICENSE) für Details.
