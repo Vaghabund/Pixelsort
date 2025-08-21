@@ -36,7 +36,7 @@ src/
 
 ```bash
 # Repository klonen
-git clone https://github.com/DEIN_USERNAME/personalpixelsort.git
+git clone https://github.com/Vaghabund/Pixelsort.git
 cd personalpixelsort
 
 # Projekt starten
@@ -65,6 +65,10 @@ cargo run
 ## Contributing
 
 Pull Requests und Issues sind willkommen!
+
+## Entwicklung
+
+Dieses Projekt wurde in enger Zusammenarbeit mit GitHub Copilot entwickelt. Die modulare Architektur, Code-Organisation und Implementierung entstanden durch kollaborative Programmierung zwischen Entwickler und KI-Assistent.
 
 ## License
 
