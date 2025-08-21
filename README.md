@@ -1,16 +1,16 @@
-# 🎨 Personal Pixel Sort
+# Personal Pixel Sort
 
 Ein modulares Rust-Projekt für kreatives Pixel-Sorting mit der Nannou-Framework.
 
-## ✨ Features
+## Features
 
-- **🔥 Mehrere Sortier-Modi**: Brightness, Black, White
-- **↔️ Horizontal & Vertikal**: Sortierung in beide Richtungen  
-- **🎚️ Live-Brightness-Control**: Echtzeit-Anpassung mit Pfeiltasten
-- **💾 Automatic Save**: Speichere Iterationen mit Enter
-- **🔄 Smart Mode-Switching**: Wechsle Modi ohne Effekt-Überlagerung
+- **Mehrere Sortier-Modi**: Brightness, Black, White
+- **Horizontal & Vertikal**: Sortierung in beide Richtungen  
+- **Live-Brightness-Control**: Echtzeit-Anpassung mit Pfeiltasten
+- **Automatic Save**: Speichere Iterationen mit Enter
+- **Smart Mode-Switching**: Wechsle Modi ohne Effekt-Überlagerung
 
-## 🎮 Steuerung
+## Steuerung
 
 | Taste | Funktion |
 |-------|----------|
@@ -21,18 +21,18 @@ Ein modulares Rust-Projekt für kreatives Pixel-Sorting mit der Nannou-Framework
 | `Enter` | Aktuelle Iteration speichern |
 | `Delete` | Letzten Modus wiederherstellen |
 
-## 🏗️ Projekt-Struktur
+## Projekt-Struktur
 
 ```
 src/
-├── main.rs       # 🎯 Event-Handling & App-Koordination
-├── model.rs      # 📊 State-Management & Core-Logic  
-├── image_ops.rs  # 🖼️ Bildverarbeitung & Sortier-Algorithmen
-├── ui.rs         # 🎨 Display & User-Interface
-└── midi.rs       # 🎵 MIDI-Integration (geplant)
+├── main.rs       # Event-Handling & App-Koordination
+├── model.rs      # State-Management & Core-Logic  
+├── image_ops.rs  # Bildverarbeitung & Sortier-Algorithmen
+├── ui.rs         # Display & User-Interface
+└── midi.rs       # MIDI-Integration (geplant)
 ```
 
-## 🚀 Installation & Start
+## Installation & Start
 
 ```bash
 # Repository klonen
@@ -43,12 +43,12 @@ cd personalpixelsort
 cargo run
 ```
 
-## 📋 Voraussetzungen
+## Voraussetzungen
 
 - Rust 1.70+
 - Ein Bild namens `input.jpg` im Projekt-Ordner
 
-## 🎯 Verwendung
+## Verwendung
 
 1. Lege dein Bild als `input.jpg` in den Projekt-Ordner
 2. Starte mit `cargo run`
@@ -56,16 +56,16 @@ cargo run
 4. Speichere interessante Iterationen mit `Enter`
 5. Ergebnisse findest du im `output/` Ordner
 
-## 🔧 Dependencies
+## Dependencies
 
 - `nannou` - Creative Coding Framework
 - `image` - Bildverarbeitung
 - `midir` - MIDI Support (optional)
 
-## 🤝 Contributing
+## Contributing
 
 Pull Requests und Issues sind willkommen!
 
-## 📄 License
+## License
 
 MIT License - siehe [LICENSE](LICENSE) für Details.
