@@ -7,12 +7,23 @@ mod image_ops;
 mod model;
 mod ui;
 mod midi;
+mod random_sort;
 
 // Verwendete Typen und Funktionen importieren
 use model::{Model, SortMode};
 use image_ops::{set_sort_mode, sort_and_update_texture, vertical_sort_and_update_texture};
+use midi::MidiState;
+
+// MIDI-Status als globale Option (Workaround, da nannou Model nicht an main gibt)
+static mut MIDI_STATE: Option<MidiState> = None;
 
 fn main() {
+    // MIDI initialisieren
+    let midi_state = MidiState::new();
+    midi_state.start_listening();
+    unsafe {
+        MIDI_STATE = Some(midi_state);
+    }
     nannou::app(model).update(update).view(view).event(event).run();
 }
 
@@ -63,10 +74,69 @@ fn model(app: &App) -> Model {
         last_vertical_mode: false,
         image_counter,
         sort_mode: SortMode::Brightness,
+        random_exclude_mode: false,
     }
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
+    // MIDI-Status abfragen und Model ggf. anpassen
+    unsafe {
+        let midi_ptr = std::ptr::addr_of!(MIDI_STATE);
+        if let Some(midi) = (*midi_ptr).as_ref() {
+            // Button-Trigger verarbeiten
+            
+            // Mode Switch Button
+            let mut mode_switch = midi.mode_switch_trigger.lock().unwrap();
+            if *mode_switch {
+                model.switch_sort_mode(); // Nutzt die vorhandene Methode
+                println!("MIDI: Mode gewechselt zu {:?}", model.sort_mode);
+                *mode_switch = false; // Trigger zurücksetzen
+            }
+            
+            // Direction Switch Button
+            let mut direction_switch = midi.direction_switch_trigger.lock().unwrap();
+            if *direction_switch {
+                model.switch_direction(); // Nutzt die vorhandene Methode
+                let direction_name = if model.vertical_mode { "Vertikal" } else { "Horizontal" };
+                println!("MIDI: Direction gewechselt zu {}", direction_name);
+                *direction_switch = false; // Trigger zurücksetzen
+            }
+            
+            // Random Toggle Button
+            let mut random_toggle = midi.random_toggle_trigger.lock().unwrap();
+            if *random_toggle {
+                model.toggle_random_exclude();
+                println!("MIDI: Random Exclude Mode: {}", model.random_exclude_mode);
+                *random_toggle = false; // Trigger zurücksetzen
+            }
+            
+            // Save Button
+            let mut save_trigger = midi.save_trigger.lock().unwrap();
+            if *save_trigger {
+                let saved_file = model.save_current_iteration();
+                println!("MIDI SAVE: {}", saved_file);
+                *save_trigger = false; // Trigger zurücksetzen
+            }
+            
+            // Threshold-Regler (kontinuierlich)
+            let midi_threshold = *midi.threshold.lock().unwrap();
+            let current_threshold = if model.vertical_mode {
+                model.brightness_value_vertical
+            } else {
+                model.brightness_value
+            };
+            
+            if current_threshold != midi_threshold {
+                if model.vertical_mode {
+                    model.brightness_value_vertical = midi_threshold;
+                } else {
+                    model.brightness_value = midi_threshold;
+                }
+                model.needs_resort = true;
+            }
+        }
+    }
+    
     if model.needs_resort {
         set_sort_mode(model.sort_mode); // Modus an image_ops weitergeben
         if !model.vertical_mode {

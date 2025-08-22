@@ -34,6 +34,8 @@ src/
 
 ## Installation & Start
 
+### Windows/macOS/Linux
+
 ```bash
 # Repository klonen
 git clone https://github.com/Vaghabund/Pixelsort.git
@@ -43,10 +45,30 @@ cd personalpixelsort
 cargo run
 ```
 
+### Raspberry Pi (automatische Installation)
+
+```bash
+# Repository klonen
+git clone https://github.com/Vaghabund/Pixelsort.git
+cd personalpixelsort
+
+# Automatische Installation ausführen
+chmod +x install.sh
+./install.sh
+
+# Projekt starten
+cargo run --release
+```
+
+Das `install.sh`-Skript installiert automatisch:
+- Alle benötigten System-Abhängigkeiten
+- Rust (falls nicht vorhanden)
+- Baut das Projekt im Release-Modus
+
 ## Voraussetzungen
 
-- Rust 1.70+
-- Ein Bild namens `input.jpg` im Projekt-Ordner
+- Rust 1.70+ (wird auf Pi automatisch installiert)
+- Ein Bild im `assets/`-Ordner
 
 ## Verwendung
 

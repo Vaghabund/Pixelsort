@@ -15,12 +15,14 @@ pub fn draw_info(draw: &Draw, model: &Model) {
         SortMode::Black => "Mode: Black",
         SortMode::White => "Mode: White",
     };
+    let random_str = if model.random_exclude_mode { "Random: ON" } else { "Random: OFF" };
     let info = format!(
-        "{}\n{}\nValue: {}\n{}",
+        "{}\n{}\nValue: {}\n{}\n{}",
         model.image_counter,
         richtung,
         value,
-        mode_str
+        mode_str,
+        random_str
     );
     let x = -((model.width as f32) / 2.0) + 20.0;
     let y = -((model.height as f32) / 2.0) + 40.0;

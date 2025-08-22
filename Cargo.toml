@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 midir = "0.10.2"
 nannou = "0.18"
+rand = "0.8"

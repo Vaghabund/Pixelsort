@@ -3,7 +3,7 @@
 
 use nannou::image;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum SortMode {
     Brightness,
     Black,
@@ -25,6 +25,7 @@ pub struct Model {
     pub vertical_mode: bool,
     pub last_vertical_mode: bool,
     pub sort_mode: SortMode,
+    pub random_exclude_mode: bool, // Neuer Toggle für Random-Exclude
 }
 
 impl Model {
@@ -44,6 +45,11 @@ impl Model {
             // Vertikal: Zurück zur letzten Basis für vertikales Sortieren  
             self.img_vertical = self.img_horizontal.clone();
         }
+        self.needs_resort = true;
+    }
+
+    pub fn toggle_random_exclude(&mut self) {
+        self.random_exclude_mode = !self.random_exclude_mode;
         self.needs_resort = true;
     }
 
