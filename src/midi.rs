@@ -24,13 +24,19 @@ impl MidiState {
         }
     }
 
-    pub fn start_listening(&self) {
+    /// Startet das MIDI-Listening. Gibt true zurück, wenn ein MIDI-Gerät gefunden wurde, sonst false.
+    pub fn start_listening(&self) -> bool {
+    // Variablen entfernt, da sie ungenutzt sind
+        
+        let midi_found = !{
+            let midi_in = MidiInput::new("pixelsort-midi").unwrap();
+            midi_in.ports().is_empty()
+        };
         let threshold = self.threshold.clone();
         let mode_switch_trigger = self.mode_switch_trigger.clone();
         let direction_switch_trigger = self.direction_switch_trigger.clone();
         let random_toggle_trigger = self.random_toggle_trigger.clone();
         let save_trigger = self.save_trigger.clone();
-        
         thread::spawn(move || {
             let mut midi_in = MidiInput::new("pixelsort-midi").unwrap();
             midi_in.ignore(Ignore::None);
@@ -39,17 +45,14 @@ impl MidiState {
                 println!("Kein MIDI-Eingang gefunden!");
                 return;
             }
-            
             // Launch Control erkennen oder ersten Port nutzen
             let in_port = &in_ports[0];
             println!("MIDI-Port verbunden: {}", midi_in.port_name(in_port).unwrap_or("Unbekannt".to_string()));
-            
             let _conn_in = midi_in.connect(in_port, "midir-read-input", move |_, message, _| {
                 if message.len() == 3 {
                     let status = message[0] & 0xF0;
                     let note_or_cc = message[1];
                     let value = message[2];
-                    
                     // Control Change Nachrichten (0xB0) - Regler
                     if status == 0xB0 {
                         match note_or_cc {
@@ -93,12 +96,12 @@ impl MidiState {
                     }
                 }
             }, ()).unwrap();
-            
             println!("MIDI-Listener gestartet.");
             println!("Layout: Regler1=Threshold, Button1=Mode, Button2=Direction, Button3=Random, Button4=Save");
             loop { 
                 std::thread::sleep(std::time::Duration::from_millis(100)); 
             }
         });
+        midi_found
     }
 }

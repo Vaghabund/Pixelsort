@@ -15,7 +15,7 @@ pub fn set_sort_mode(mode: SortMode) {
 }
 
 pub fn brightness(px: &image::Rgba<u8>) -> u8 {
-    let [r, g, b, _a] = px.0;
+    let [r, g, b, _] = px.0;
     ((r as u16 + g as u16 + b as u16) / 3) as u8
 }
 

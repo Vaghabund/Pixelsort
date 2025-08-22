@@ -5,7 +5,7 @@ use rand::Rng;
 use nannou::image;
 
 pub fn brightness_f32(px: &image::Rgba<u8>) -> f32 {
-    let [r, g, b, _a] = px.0;
+    let [r, g, b, _] = px.0;
     (r as f32 + g as f32 + b as f32) / (3.0 * 255.0)
 }
 
