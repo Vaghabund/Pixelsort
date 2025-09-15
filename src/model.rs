@@ -1,7 +1,9 @@
 // model.rs
 // Enthält die zentrale Model-Struktur und Enums für das Pixel-Sorting-Projekt
 
-use nannou::image;
+use image::{self, RgbaImage};
+use std::fs;
+use std::path::Path;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum SortMode {
@@ -10,13 +12,10 @@ pub enum SortMode {
     White,
 }
 
-#[derive(Clone)]
 pub struct Model {
-    pub image_counter: usize,
-    pub texture: nannou::wgpu::Texture,
-    pub img_original: image::RgbaImage,
-    pub img_horizontal: image::RgbaImage,
-    pub img_vertical: image::RgbaImage,
+    pub img_original: RgbaImage,
+    pub img_horizontal: RgbaImage,
+    pub img_vertical: RgbaImage,
     pub brightness_value: u8,
     pub brightness_value_vertical: u8,
     pub width: u32,
@@ -25,10 +24,79 @@ pub struct Model {
     pub vertical_mode: bool,
     pub last_vertical_mode: bool,
     pub sort_mode: SortMode,
-    pub random_exclude_mode: bool, // Neuer Toggle für Random-Exclude
+    pub random_exclude_mode: bool,
+    pub image_counter: usize,
 }
 
 impl Model {
+    pub fn new() -> Self {
+        let img_path = fs::read_dir("assets")
+            .unwrap()
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .find(|path| {
+                if let Some(ext) = path.extension() {
+                    matches!(
+                        ext.to_str().unwrap_or("").to_lowercase().as_str(),
+                        "png" | "jpg" | "jpeg" | "bmp" | "gif"
+                    )
+                } else {
+                    false
+                }
+            })
+            .expect("Kein Bild im assets-Ordner gefunden!");
+        
+        let img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
+        let (width, height) = img.dimensions();
+
+        Model {
+            img_original: img.clone(),
+            img_horizontal: img.clone(),
+            img_vertical: img.clone(),
+            brightness_value: 60,
+            brightness_value_vertical: 60,
+            width,
+            height,
+            needs_resort: true,
+            vertical_mode: false,
+            last_vertical_mode: false,
+            sort_mode: SortMode::Brightness,
+            random_exclude_mode: false,
+            image_counter: 1,
+        }
+    }
+
+    pub fn update(&mut self) {
+        if self.needs_resort {
+            if !self.vertical_mode {
+                crate::image_ops::sort_and_update_pixels(self);
+            } else {
+                crate::image_ops::vertical_sort_and_update_pixels(self);
+            }
+            self.needs_resort = false;
+        }
+    }
+
+    pub fn render(&self, frame: &mut [u8]) {
+        let img = if self.vertical_mode {
+            &self.img_vertical
+        } else {
+            &self.img_horizontal
+        };
+
+        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+            let x = (i % 480) as u32;
+            let y = (i / 480) as u32;
+            
+            if x < self.width && y < self.height {
+                let img_pixel = img.get_pixel(x, y);
+                pixel.copy_from_slice(&[img_pixel[0], img_pixel[1], img_pixel[2], 255]);
+            } else {
+                pixel.copy_from_slice(&[0, 0, 0, 255]);
+            }
+        }
+    }
+
     pub fn switch_sort_mode(&mut self) {
         // Modi durchschalten: Brightness -> Black -> White -> Brightness
         self.sort_mode = match self.sort_mode {
@@ -70,9 +138,6 @@ impl Model {
     }
 
     pub fn save_current_iteration(&mut self) -> String {
-        use std::fs;
-        use std::path::Path;
-        
         // Ordner 'output' anlegen, falls nicht vorhanden
         let output_dir = Path::new("output");
         if !output_dir.exists() {

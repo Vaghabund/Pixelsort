@@ -1,28 +1,19 @@
 // image_ops.rs
 // Bildverarbeitungsfunktionen für Pixel-Sorting-Projekt
 
-use nannou::image;
+use image::{self, RgbaImage};
 use crate::model::SortMode;
 use crate::random_sort;
-
-// Globaler Modus für Sortierung (Workaround, da nannou keine Model-Referenz in Segmentfunktionen erlaubt)
-static mut CURRENT_SORT_MODE: SortMode = SortMode::Brightness;
-
-pub fn set_sort_mode(mode: SortMode) {
-    unsafe {
-        CURRENT_SORT_MODE = mode;
-    }
-}
+use crate::model::Model;
 
 pub fn brightness(px: &image::Rgba<u8>) -> u8 {
     let [r, g, b, _] = px.0;
     ((r as u16 + g as u16 + b as u16) / 3) as u8
 }
 
-pub fn sort_row_segment(img: &mut image::RgbaImage, y: u32, x_start: u32, x_end: u32, use_random: bool) {
+pub fn sort_row_segment(img: &mut RgbaImage, y: u32, x_start: u32, x_end: u32, use_random: bool, sort_mode: SortMode) {
     if use_random {
-        let mode = unsafe { CURRENT_SORT_MODE };
-        let sort_func = match mode {
+        let sort_func = match sort_mode {
             SortMode::Brightness => random_sort::brightness_f32,
             SortMode::Black => random_sort::red_value_f32,
             SortMode::White => random_sort::inverted_red_f32,
@@ -32,8 +23,7 @@ pub fn sort_row_segment(img: &mut image::RgbaImage, y: u32, x_start: u32, x_end:
         let mut segment: Vec<_> = (x_start..x_end)
             .map(|x| *img.get_pixel(x, y))
             .collect();
-        let mode = unsafe { CURRENT_SORT_MODE };
-        segment.sort_by_key(|px| match mode {
+        segment.sort_by_key(|px| match sort_mode {
             SortMode::Brightness => brightness(px),
             SortMode::Black => px[0] as u8,
             SortMode::White => 255 - px[0] as u8,
@@ -44,10 +34,9 @@ pub fn sort_row_segment(img: &mut image::RgbaImage, y: u32, x_start: u32, x_end:
     }
 }
 
-pub fn sort_column_segment(img: &mut image::RgbaImage, x: u32, y_start: u32, y_end: u32, use_random: bool) {
+pub fn sort_column_segment(img: &mut RgbaImage, x: u32, y_start: u32, y_end: u32, use_random: bool, sort_mode: SortMode) {
     if use_random {
-        let mode = unsafe { CURRENT_SORT_MODE };
-        let sort_func = match mode {
+        let sort_func = match sort_mode {
             SortMode::Brightness => random_sort::brightness_f32,
             SortMode::Black => random_sort::red_value_f32,
             SortMode::White => random_sort::inverted_red_f32,
@@ -57,8 +46,7 @@ pub fn sort_column_segment(img: &mut image::RgbaImage, x: u32, y_start: u32, y_e
         let mut segment: Vec<_> = (y_start..y_end)
             .map(|y| *img.get_pixel(x, y))
             .collect();
-        let mode = unsafe { CURRENT_SORT_MODE };
-        segment.sort_by_key(|px| match mode {
+        segment.sort_by_key(|px| match sort_mode {
             SortMode::Brightness => brightness(px),
             SortMode::Black => px[0] as u8,
             SortMode::White => 255 - px[0] as u8,
@@ -69,14 +57,14 @@ pub fn sort_column_segment(img: &mut image::RgbaImage, x: u32, y_start: u32, y_e
     }
 }
 
-pub fn get_next_segment_row_bright(img: &image::RgbaImage, mut x: u32, y: u32, width: u32, brightness_value: u8) -> (u32, u32) {
+pub fn get_next_segment_row_bright(img: &RgbaImage, mut x: u32, y: u32, width: u32, brightness_value: u8) -> (u32, u32) {
     while x < width && brightness(img.get_pixel(x, y)) < brightness_value { x += 1; }
     let start = x;
     while x < width && brightness(img.get_pixel(x, y)) > brightness_value { x += 1; }
     (start, x)
 }
 
-pub fn get_next_segment_column_bright(img: &image::RgbaImage, x: u32, mut y: u32, height: u32, brightness_value: u8) -> (u32, u32) {
+pub fn get_next_segment_column_bright(img: &RgbaImage, x: u32, mut y: u32, height: u32, brightness_value: u8) -> (u32, u32) {
     while y < height && brightness(img.get_pixel(x, y)) < brightness_value { y += 1; }
     let start = y;
     while y < height && brightness(img.get_pixel(x, y)) > brightness_value { y += 1; }
@@ -84,23 +72,22 @@ pub fn get_next_segment_column_bright(img: &image::RgbaImage, x: u32, mut y: u32
 }
 
 // Hauptfunktionen für horizontales und vertikales Sortieren
-use nannou::image::DynamicImage;
-use crate::model::Model;
-
-pub fn sort_and_update_texture(app: &nannou::App, model: &mut Model) {
+pub fn sort_and_update_pixels(model: &mut Model) {
     let mut img = model.img_original.clone();
     let (width, height) = (model.width, model.height);
     let use_random = model.random_exclude_mode;
+    let sort_mode = model.sort_mode;
+    let brightness_value = model.brightness_value;
     
     // Spalten sortieren
     for x in 0..width {
         let mut y = 0;
         while y < height {
-            let (start, end) = get_next_segment_column_bright(&img, x, y, height, model.brightness_value);
+            let (start, end) = get_next_segment_column_bright(&img, x, y, height, brightness_value);
             if start >= end || start >= height {
                 break;
             }
-            sort_column_segment(&mut img, x, start, end, use_random);
+            sort_column_segment(&mut img, x, start, end, use_random, sort_mode);
             y = end + 1;
         }
     }
@@ -108,34 +95,34 @@ pub fn sort_and_update_texture(app: &nannou::App, model: &mut Model) {
     for y in 0..height {
         let mut x = 0;
         while x < width {
-            let (start, end) = get_next_segment_row_bright(&img, x, y, width, model.brightness_value);
+            let (start, end) = get_next_segment_row_bright(&img, x, y, width, brightness_value);
             if start >= end || start >= width {
                 break;
             }
-            sort_row_segment(&mut img, y, start, end, use_random);
+            sort_row_segment(&mut img, y, start, end, use_random, sort_mode);
             x = end + 1;
         }
     }
     model.img_horizontal = img.clone();
-    model.texture = nannou::wgpu::Texture::from_image(app, &DynamicImage::ImageRgba8(img));
 }
 
-pub fn vertical_sort_and_update_texture(app: &nannou::App, model: &mut Model) {
+pub fn vertical_sort_and_update_pixels(model: &mut Model) {
     let mut img = model.img_horizontal.clone();
     let (width, height) = (model.width, model.height);
     let use_random = model.random_exclude_mode;
+    let sort_mode = model.sort_mode;
+    let brightness_value = model.brightness_value_vertical;
     
     for x in 0..width {
         let mut y = 0;
         while y < height {
-            let (start, end) = get_next_segment_column_bright(&img, x, y, height, model.brightness_value_vertical);
+            let (start, end) = get_next_segment_column_bright(&img, x, y, height, brightness_value);
             if start >= end || start >= height {
                 break;
             }
-            sort_column_segment(&mut img, x, start, end, use_random);
+            sort_column_segment(&mut img, x, start, end, use_random, sort_mode);
             y = end + 1;
         }
     }
     model.img_vertical = img.clone();
-    model.texture = nannou::wgpu::Texture::from_image(app, &DynamicImage::ImageRgba8(img));
 }

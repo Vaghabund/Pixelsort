@@ -2,7 +2,7 @@
 // Random Exclude Pixel Sorting Funktionen
 
 use rand::Rng;
-use nannou::image;
+use image;
 
 pub fn brightness_f32(px: &image::Rgba<u8>) -> f32 {
     let [r, g, b, _] = px.0;
