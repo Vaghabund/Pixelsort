@@ -1,108 +1,94 @@
-use pixels::{Error, SurfaceTexture, PixelsBuilder};
-use winit::dpi::LogicalSize;
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::EventLoop;
-use winit::keyboard::KeyCode;
-use winit::window::WindowBuilder;
-use winit_input_helper::WinitInputHelper;
+use std::env;
 
 // Module importieren
 mod image_ops;
 mod model;
 mod random_sort;
+mod framebuffer;
 
 // Verwendete Typen und Funktionen importieren
 use model::Model;
+use framebuffer::FrameBuffer;
 
 const WIDTH: u32 = 480;
 const HEIGHT: u32 = 320;
 
-fn main() -> Result<(), Error> {
-    let event_loop = EventLoop::new().unwrap();
-    let mut input = WinitInputHelper::new();
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Check if we're running on Pi with framebuffer
+    let use_framebuffer = env::var("USE_FRAMEBUFFER").unwrap_or_default() == "1";
     
-    let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
-        WindowBuilder::new()
-            .with_title("Pixelsort")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .unwrap()
-    };
+    if use_framebuffer {
+        return run_framebuffer_mode();
+    }
+    
+    // Fall back to normal window mode
+    run_window_mode()
+}
 
+fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
+    println!("Running in framebuffer mode for TFT display...");
+    
+    let mut model = Model::new();
+    let mut framebuffer = FrameBuffer::new("/dev/fb1", WIDTH, HEIGHT)?; // fb1 for TFT display
+    
+    // Simple render loop for framebuffer
+    let mut frame_buffer = vec![0u8; (WIDTH * HEIGHT * 4) as usize];
+    
+    loop {
+        model.update();
+        model.render(&mut frame_buffer);
+        framebuffer.write_frame(&frame_buffer)?;
+        
+        // Simple delay to control frame rate
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+}
+
+fn run_window_mode() -> Result<(), Box<dyn std::error::Error>> {
+    // For now, just run a simple console version when not in framebuffer mode
+    println!("Window mode not implemented for this Pi setup. Use USE_FRAMEBUFFER=1");
+    
     let mut model = Model::new();
     
-    let _ = event_loop.run(move |event, elwt| {
-        match event {
-            Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
-                // Create pixels instance for this frame with software rendering fallback
-                let window_size = window.inner_size();
-                
-                // Try to create pixels with software rendering fallback
-                let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-                let mut pixels = match PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
-                    .wgpu_backend(pixels::wgpu::Backends::VULKAN | pixels::wgpu::Backends::GL)
-                    .build() {
-                    Ok(p) => p,
-                    Err(e) => {
-                        eprintln!("Failed to create pixels renderer with Vulkan/GL: {}", e);
-                        // Try with just GL
-                        let surface_texture2 = SurfaceTexture::new(window_size.width, window_size.height, &window);
-                        match PixelsBuilder::new(WIDTH, HEIGHT, surface_texture2)
-                            .wgpu_backend(pixels::wgpu::Backends::GL)
-                            .build() {
-                            Ok(p) => p,
-                            Err(e2) => {
-                                eprintln!("Failed to create pixels renderer with GL: {}", e2);
-                                elwt.exit();
-                                return;
-                            }
-                        }
-                    }
-                };
-                
-                model.update();
-                model.render(pixels.frame_mut());
-                if let Err(err) = pixels.render() {
-                    eprintln!("pixels.render() failed: {}", err);
-                    elwt.exit();
-                    return;
-                }
-            }
-            Event::AboutToWait => {
-                window.request_redraw();
-            }
-            _ => {}
-        }
-
-        if input.update(&event) {
-            if input.key_pressed(KeyCode::Escape) || input.close_requested() {
-                elwt.exit();
-                return;
-            }
-
-            if input.key_pressed(KeyCode::ArrowUp) {
+    // Simple console interaction
+    use std::io::{self, Write};
+    loop {
+        print!("Commands: (q)uit, (u)p brightness, (d)own brightness, (s)ave, (n)ext direction, (m)ode, (r)andom: ");
+        io::stdout().flush()?;
+        
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        
+        match input.trim() {
+            "q" => break,
+            "u" => {
                 model.increase_brightness();
-            }
-            if input.key_pressed(KeyCode::ArrowDown) {
+                println!("Brightness increased");
+            },
+            "d" => {
                 model.decrease_brightness();
-            }
-            if input.key_pressed(KeyCode::Enter) {
-                let saved_file = model.save_current_iteration();
-                println!("Gespeichert: {}", saved_file);
-            }
-            if input.key_pressed(KeyCode::KeyN) {
+                println!("Brightness decreased");
+            },
+            "s" => {
+                model.update();
+                let filename = model.save_current_iteration();
+                println!("Saved: {}", filename);
+            },
+            "n" => {
                 model.switch_direction();
-            }
-            if input.key_pressed(KeyCode::KeyM) {
+                println!("Direction switched");
+            },
+            "m" => {
                 model.switch_sort_mode();
-            }
-            if input.key_pressed(KeyCode::KeyB) {
+                println!("Sort mode switched");
+            },
+            "r" => {
                 model.toggle_random_exclude();
-            }
+                println!("Random mode toggled");
+            },
+            _ => println!("Unknown command"),
         }
-    });
-
+    }
+    
     Ok(())
 }

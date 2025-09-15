@@ -22,12 +22,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 2. Pull and build on Pi
 Write-Host "Pulling and building on Pi..." -ForegroundColor Yellow
-$sshCommand = @"
-cd Pixelsort && 
-git pull origin main && 
-source ~/.cargo/env && 
-cargo build --release
-"@
+$sshCommand = "cd Pixelsort; git pull origin main; source ~/.cargo/env; cargo build --release"
 
 ssh pixelsort@192.168.0.9 $sshCommand
 
@@ -42,5 +37,6 @@ Write-Host "Deployment successful!" -ForegroundColor Green
 if ($Run) {
     Write-Host "Running program on Pi..." -ForegroundColor Cyan
     Write-Host "Note: Graphics will appear on Pi's display, not here!" -ForegroundColor Yellow
-    ssh pixelsort@192.168.0.9 "cd Pixelsort && source ~/.cargo/env && DISPLAY=:0 ./target/release/pixelsort"
+    $runCommand = "cd Pixelsort; source ~/.cargo/env; DISPLAY=:0 ./target/release/pixelsort"
+    ssh pixelsort@192.168.0.9 $runCommand
 }
