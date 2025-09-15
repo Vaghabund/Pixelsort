@@ -29,7 +29,7 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
     println!("Running in framebuffer mode for TFT display...");
     
     let mut model = Model::new();
-    let mut framebuffer = FrameBuffer::new("/dev/fb1", WIDTH, HEIGHT)?; // fb1 for TFT display
+    let mut framebuffer = FrameBuffer::new("/dev/fb0", WIDTH, HEIGHT)?; // fb0 for TFT display
     
     // Simple render loop for framebuffer
     let mut frame_buffer = vec![0u8; (WIDTH * HEIGHT * 4) as usize];
