@@ -36,8 +36,9 @@ fn model(app: &App) -> Model {
     let img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
     let (width, height) = img.dimensions();
 
+    // Create window with specific settings for TFT displays
     app.new_window()
-        .size(width, height)
+        .size(width.min(480), height.min(320)) // Limit to common TFT resolution
         .view(view)
         .build()
         .unwrap();

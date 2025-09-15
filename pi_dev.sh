@@ -17,7 +17,7 @@ case "$1" in
     "run")
         echo "Running pixelsort..."
         echo "Make sure your display is connected!"
-        DISPLAY=:0 ./target/release/pixelsort
+        LIBGL_ALWAYS_SOFTWARE=1 DISPLAY=:0 ./target/release/pixelsort
         ;;
     "dev")
         echo "Full development cycle: pull -> build -> run"
@@ -25,7 +25,7 @@ case "$1" in
         cargo build --release
         if [ $? -eq 0 ]; then
             echo "Starting pixelsort..."
-            DISPLAY=:0 ./target/release/pixelsort
+            LIBGL_ALWAYS_SOFTWARE=1 DISPLAY=:0 ./target/release/pixelsort
         else
             echo "Build failed!"
         fi

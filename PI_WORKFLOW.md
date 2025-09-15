@@ -91,19 +91,16 @@ Pi: /home/pixelsort/Pixelsort/
 
 ## Controls
 
-**With MIDI Controller:**
-- Knob 1: Threshold value
-- Button 1: Switch sort mode
-- Button 2: Switch direction (horizontal/vertical) 
-- Button 3: Toggle random mode
-- Button 4: Save current image
-
-**With Keyboard (fallback):**
-- ↑↓ arrows: Adjust threshold
-- M: Switch sort mode
-- N: Switch direction
-- B: Toggle random mode  
+**Keyboard Controls:**
+- Up/Down arrows: Adjust threshold
+- M: Switch sort mode (Brightness/Black/White)
+- N: Switch direction (horizontal/vertical) 
+- B: Toggle random mode
 - Enter: Save current image
+
+**Future Hardware Controls (planned):**
+- Physical potentiometers for threshold adjustment
+- Physical buttons for mode switching and control
 
 ## Tips
 
