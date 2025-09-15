@@ -30,21 +30,39 @@ pub struct Model {
 
 impl Model {
     pub fn new() -> Self {
-        let img_path = fs::read_dir("assets")
-            .unwrap()
-            .filter_map(|entry| entry.ok())
-            .map(|entry| entry.path())
-            .find(|path| {
-                if let Some(ext) = path.extension() {
-                    matches!(
-                        ext.to_str().unwrap_or("").to_lowercase().as_str(),
-                        "png" | "jpg" | "jpeg" | "bmp" | "gif"
-                    )
-                } else {
-                    false
+        // Locate assets directory: prefer ./assets, fall back to executable's parent/assets
+        let assets_candidates = vec![
+            std::path::PathBuf::from("assets"),
+            std::env::current_exe()
+                .ok()
+                .and_then(|p| p.parent().map(|d| d.join("assets")))
+                .unwrap_or_else(|| std::path::PathBuf::from("assets")),
+        ];
+
+        let mut img_path: Option<std::path::PathBuf> = None;
+        for assets_dir in assets_candidates {
+            if let Ok(entries) = fs::read_dir(&assets_dir) {
+                img_path = entries
+                    .filter_map(|entry| entry.ok())
+                    .map(|entry| entry.path())
+                    .find(|path| {
+                        if let Some(ext) = path.extension() {
+                            matches!(
+                                ext.to_str().unwrap_or("").to_lowercase().as_str(),
+                                "png" | "jpg" | "jpeg" | "bmp" | "gif"
+                            )
+                        } else {
+                            false
+                        }
+                    });
+
+                if img_path.is_some() {
+                    break;
                 }
-            })
-            .expect("Kein Bild im assets-Ordner gefunden!");
+            }
+        }
+
+        let img_path = img_path.expect("No image found in any 'assets' directory (tried ./assets and exe_parent/assets)");
         
         let original_img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
         
