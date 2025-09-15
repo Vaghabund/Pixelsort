@@ -46,7 +46,10 @@ impl Model {
             })
             .expect("Kein Bild im assets-Ordner gefunden!");
         
-        let img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
+        let original_img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
+        
+        // Downscale image to 480x320 resolution
+        let img = image::imageops::resize(&original_img, 480, 320, image::imageops::FilterType::Lanczos3);
         let (width, height) = img.dimensions();
 
         Model {
