@@ -44,7 +44,7 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(unix)]
     {
-        use evdev::{Device, InputEventKind, Key};
+    use evdev::{Device, EventType, InputEventKind, Key};
 
         // Try to find keyboard device
         let keyboard_device = {
@@ -54,13 +54,11 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
                     let path = entry.path();
                     if let Some(fname) = path.file_name().and_then(|s| s.to_str()) {
                         if fname.starts_with("event") {
-                            if let Ok(mut device) = Device::open(&path) {
-                                if let Ok(keys) = device.supported_keys() {
-                                    if keys.contains(Key::KEY_ESC) {
-                                        println!("Found keyboard device: {:?}", path);
-                                        keyboard = Some(device);
-                                        break;
-                                    }
+                            if let Ok(device) = Device::open(&path) {
+                                if device.supported_events().contains(EventType::KEY) {
+                                    println!("Found keyboard device: {:?}", path);
+                                    keyboard = Some(device);
+                                    break;
                                 }
                             }
                         }
