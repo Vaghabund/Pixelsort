@@ -31,16 +31,26 @@ pub struct Model {
 impl Model {
     pub fn new() -> Self {
         // Locate assets directory: prefer ./assets, fall back to executable's parent/assets
-        let assets_candidates = vec![
-            std::path::PathBuf::from("assets"),
-            std::env::current_exe()
-                .ok()
-                .and_then(|p| p.parent().map(|d| d.join("assets")))
-                .unwrap_or_else(|| std::path::PathBuf::from("assets")),
-        ];
-
+        // Search for assets directory starting from CWD, then executable dir and its ancestors
         let mut img_path: Option<std::path::PathBuf> = None;
-        for assets_dir in assets_candidates {
+
+        let mut candidates = Vec::new();
+        candidates.push(std::path::PathBuf::from("assets"));
+        if let Ok(mut p) = std::env::current_exe() {
+            if let Some(mut dir) = p.parent() {
+                // Walk up a few levels looking for assets
+                for _ in 0..6 {
+                    candidates.push(dir.join("assets"));
+                    if let Some(parent) = dir.parent() {
+                        dir = parent;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+
+        for assets_dir in candidates {
             if let Ok(entries) = fs::read_dir(&assets_dir) {
                 img_path = entries
                     .filter_map(|entry| entry.ok())
@@ -62,7 +72,7 @@ impl Model {
             }
         }
 
-        let img_path = img_path.expect("No image found in any 'assets' directory (tried ./assets and exe_parent/assets)");
+        let img_path = img_path.expect("No image found in any 'assets' directory (searched CWD and exe parent tree)");
         
         let original_img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
         
