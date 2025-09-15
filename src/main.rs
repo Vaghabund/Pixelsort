@@ -1,4 +1,4 @@
-use pixels::{Error, Pixels, SurfaceTexture};
+use pixels::{Error, SurfaceTexture, PixelsBuilder};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
@@ -36,10 +36,31 @@ fn main() -> Result<(), Error> {
     let _ = event_loop.run(move |event, elwt| {
         match event {
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
-                // Create pixels instance for this frame
+                // Create pixels instance for this frame with software rendering fallback
                 let window_size = window.inner_size();
+                
+                // Try to create pixels with software rendering fallback
                 let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-                let mut pixels = Pixels::new(WIDTH, HEIGHT, surface_texture).unwrap();
+                let mut pixels = match PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
+                    .wgpu_backend(pixels::wgpu::Backends::VULKAN | pixels::wgpu::Backends::GL)
+                    .build() {
+                    Ok(p) => p,
+                    Err(e) => {
+                        eprintln!("Failed to create pixels renderer with Vulkan/GL: {}", e);
+                        // Try with just GL
+                        let surface_texture2 = SurfaceTexture::new(window_size.width, window_size.height, &window);
+                        match PixelsBuilder::new(WIDTH, HEIGHT, surface_texture2)
+                            .wgpu_backend(pixels::wgpu::Backends::GL)
+                            .build() {
+                            Ok(p) => p,
+                            Err(e2) => {
+                                eprintln!("Failed to create pixels renderer with GL: {}", e2);
+                                elwt.exit();
+                                return;
+                            }
+                        }
+                    }
+                };
                 
                 model.update();
                 model.render(pixels.frame_mut());
