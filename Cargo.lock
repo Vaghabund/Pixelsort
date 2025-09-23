@@ -1202,6 +1202,7 @@ dependencies = [
  "image",
  "pixels",
  "rand",
+ "rayon",
  "winit",
  "winit_input_helper",
 ]

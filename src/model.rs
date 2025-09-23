@@ -22,9 +22,9 @@ pub struct Model {
     pub height: u32,
     pub needs_resort: bool,
     pub vertical_mode: bool,
-    pub last_vertical_mode: bool,
     pub sort_mode: SortMode,
     pub random_exclude_mode: bool,
+    pub random_exclude_prob: f32,
     pub image_counter: usize,
 }
 
@@ -36,7 +36,7 @@ impl Model {
 
         let mut candidates = Vec::new();
         candidates.push(std::path::PathBuf::from("assets"));
-        if let Ok(mut p) = std::env::current_exe() {
+        if let Ok(p) = std::env::current_exe() {
             if let Some(mut dir) = p.parent() {
                 // Walk up a few levels looking for assets
                 for _ in 0..6 {
@@ -76,8 +76,16 @@ impl Model {
         
         let original_img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
         
-        // Downscale image to 480x320 resolution
-        let img = image::imageops::resize(&original_img, 480, 320, image::imageops::FilterType::Lanczos3);
+        // Determine target resolution from env or default to 480x320
+        let target_width: u32 = std::env::var("PIXELSORT_WIDTH").ok().and_then(|s| s.parse().ok()).unwrap_or(480);
+        let target_height: u32 = std::env::var("PIXELSORT_HEIGHT").ok().and_then(|s| s.parse().ok()).unwrap_or(320);
+        
+        // Read random exclude probability from env var (0.0..=1.0) default 0.3
+        let random_prob: f32 = std::env::var("PIXELSORT_RANDOM_PROB").ok().and_then(|s| s.parse().ok()).unwrap_or(0.3);
+        let random_prob = if random_prob < 0.0 { 0.0 } else if random_prob > 1.0 { 1.0 } else { random_prob };
+        
+        // Downscale image to target resolution
+        let img = image::imageops::resize(&original_img, target_width, target_height, image::imageops::FilterType::Lanczos3);
         let (width, height) = img.dimensions();
 
         Model {
@@ -90,9 +98,9 @@ impl Model {
             height,
             needs_resort: true,
             vertical_mode: false,
-            last_vertical_mode: false,
             sort_mode: SortMode::Brightness,
             random_exclude_mode: false,
+            random_exclude_prob: random_prob,
             image_counter: 1,
         }
     }
@@ -109,16 +117,14 @@ impl Model {
     }
 
     pub fn render(&self, frame: &mut [u8]) {
-        let img = if self.vertical_mode {
-            &self.img_vertical
-        } else {
-            &self.img_horizontal
-        };
+        let img = if self.vertical_mode { &self.img_vertical } else { &self.img_horizontal };
 
+        let w = self.width as usize;
+        // Use model.width to compute coordinates so resolution is configurable
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % 480) as u32;
-            let y = (i / 480) as u32;
-            
+            let x = (i % w) as u32;
+            let y = (i / w) as u32;
+
             if x < self.width && y < self.height {
                 let img_pixel = img.get_pixel(x, y);
                 pixel.copy_from_slice(&[img_pixel[0], img_pixel[1], img_pixel[2], 255]);
@@ -154,7 +160,6 @@ impl Model {
 
     pub fn switch_direction(&mut self) {
         // Richtung umschalten (horizontal <-> vertikal)
-        self.last_vertical_mode = self.vertical_mode;
         self.vertical_mode = !self.vertical_mode;
         
         // Bei Richtungswechsel auch auf entsprechende Basis zurücksetzen

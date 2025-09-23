@@ -10,9 +10,6 @@ mod framebuffer;
 use model::Model;
 use framebuffer::FrameBuffer;
 
-const WIDTH: u32 = 480;
-const HEIGHT: u32 = 320;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Check if we're running on Pi with framebuffer
     let use_framebuffer = env::var("USE_FRAMEBUFFER").unwrap_or_default() == "1";
@@ -29,22 +26,40 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
     println!("Running in framebuffer mode for TFT display...");
     println!("Controls: Arrow Up/Down = brightness, Enter = save, N = direction, M = mode, B = random, Esc = quit");
     
+    // Create model (it will pick up configured width/height from env or default to 480x320)
     let mut model = Model::new();
-    let mut framebuffer = FrameBuffer::new("/dev/fb0", WIDTH, HEIGHT)?;
+    let width = model.width;
+    let height = model.height;
+
+    // Create framebuffer with the model's dimensions
+    let mut framebuffer = FrameBuffer::new("/dev/fb0", width, height, None)?;
     
-    let mut frame_buffer = vec![0u8; (WIDTH * HEIGHT * 4) as usize];
+    // Pixel buffer RGBA8
+    let mut frame_buffer = vec![0u8; (width * height * 4) as usize];
     
-    // Try to find keyboard device (only on Unix)
+    // Input handling setup: channel + atomic running flag
     use std::thread;
-    use std::sync::{Arc, Mutex};
+    use std::sync::{Arc, mpsc, atomic::{AtomicBool, Ordering}};
     use std::time::Duration;
 
-    let model_arc = Arc::new(Mutex::new(model));
-    let running = Arc::new(Mutex::new(true));
+    // Commands produced by input thread and consumed by main loop
+    #[derive(Debug)]
+    enum UiCommand {
+        Quit,
+        IncreaseBrightness,
+        DecreaseBrightness,
+        Save,
+        SwitchDirection,
+        SwitchMode,
+        ToggleRandom,
+    }
+
+    let (tx, rx) = mpsc::channel::<UiCommand>();
+    let running = Arc::new(AtomicBool::new(true));
 
     #[cfg(unix)]
     {
-    use evdev::{Device, EventType, InputEventKind, Key};
+        use evdev::{Device, EventType, InputEventKind, Key};
 
         // Try to find keyboard device
         let keyboard_device = {
@@ -70,11 +85,11 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
 
         // Keyboard handling thread (Unix)
         if let Some(mut device) = keyboard_device {
-            let model_clone_for_thread = model_arc.clone();
-            let running_clone_for_thread = running.clone();
+            let tx_clone = tx.clone();
+            let running_clone = running.clone();
             thread::spawn(move || {
                 loop {
-                    if !*running_clone_for_thread.lock().unwrap() {
+                    if !running_clone.load(Ordering::SeqCst) {
                         break;
                     }
 
@@ -83,45 +98,23 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
                             for event in events {
                                 if let InputEventKind::Key(key) = event.kind() {
                                     if event.value() == 1 { // Key pressed
-                                        let mut model = model_clone_for_thread.lock().unwrap();
-                                        match key {
-                                            Key::KEY_ESC => {
-                                                *running_clone_for_thread.lock().unwrap() = false;
+                                        let cmd = match key {
+                                            Key::KEY_ESC => Some(UiCommand::Quit),
+                                            Key::KEY_UP => Some(UiCommand::IncreaseBrightness),
+                                            Key::KEY_DOWN => Some(UiCommand::DecreaseBrightness),
+                                            Key::KEY_ENTER => Some(UiCommand::Save),
+                                            Key::KEY_N => Some(UiCommand::SwitchDirection),
+                                            Key::KEY_M => Some(UiCommand::SwitchMode),
+                                            Key::KEY_B => Some(UiCommand::ToggleRandom),
+                                            _ => None,
+                                        };
+                                        if let Some(c) = cmd {
+                                            let _ = tx_clone.send(c);
+                                            // Fast-path for quit: also set running flag so thread will exit quickly
+                                            if matches!(c, UiCommand::Quit) {
+                                                running_clone.store(false, Ordering::SeqCst);
                                                 return;
-                                            },
-                                            Key::KEY_UP => {
-                                                model.increase_brightness();
-                                                println!("Brightness: {}", if model.vertical_mode { 
-                                                    model.brightness_value_vertical 
-                                                } else { 
-                                                    model.brightness_value 
-                                                });
-                                            },
-                                            Key::KEY_DOWN => {
-                                                model.decrease_brightness();
-                                                println!("Brightness: {}", if model.vertical_mode { 
-                                                    model.brightness_value_vertical 
-                                                } else { 
-                                                    model.brightness_value 
-                                                });
-                                            },
-                                            Key::KEY_ENTER => {
-                                                let filename = model.save_current_iteration();
-                                                println!("Saved: {}", filename);
-                                            },
-                                            Key::KEY_N => {
-                                                model.switch_direction();
-                                                println!("Direction: {}", if model.vertical_mode { "Vertical" } else { "Horizontal" });
-                                            },
-                                            Key::KEY_M => {
-                                                model.switch_sort_mode();
-                                                println!("Sort mode: {:?}", model.sort_mode);
-                                            },
-                                            Key::KEY_B => {
-                                                model.toggle_random_exclude();
-                                                println!("Random mode: {}", if model.random_exclude_mode { "ON" } else { "OFF" });
-                                            },
-                                            _ => {}
+                                            }
                                         }
                                     }
                                 }
@@ -137,14 +130,50 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
             println!("Warning: No keyboard device found (Unix). Use Ctrl+C to exit.");
         }
     }
-    
-    // Main render loop
-    while *running.lock().unwrap() {
-        {
-            let mut model = model_arc.lock().unwrap();
-            model.update();
-            model.render(&mut frame_buffer);
+
+    // Helper to handle commands in the main thread (mutates model only here)
+    let handle_command = |model: &mut Model, cmd: UiCommand, running: &Arc<AtomicBool>| {
+        match cmd {
+            UiCommand::Quit => {
+                running.store(false, Ordering::SeqCst);
+            }
+            UiCommand::IncreaseBrightness => {
+                model.increase_brightness();
+                println!("Brightness: {}", if model.vertical_mode { model.brightness_value_vertical } else { model.brightness_value });
+            }
+            UiCommand::DecreaseBrightness => {
+                model.decrease_brightness();
+                println!("Brightness: {}", if model.vertical_mode { model.brightness_value_vertical } else { model.brightness_value });
+            }
+            UiCommand::Save => {
+                let filename = model.save_current_iteration();
+                println!("Saved: {}", filename);
+            }
+            UiCommand::SwitchDirection => {
+                model.switch_direction();
+                println!("Direction: {}", if model.vertical_mode { "Vertical" } else { "Horizontal" });
+            }
+            UiCommand::SwitchMode => {
+                model.switch_sort_mode();
+                println!("Sort mode: {:?}", model.sort_mode);
+            }
+            UiCommand::ToggleRandom => {
+                model.toggle_random_exclude();
+                println!("Random mode: {}", if model.random_exclude_mode { "ON" } else { "OFF" });
+            }
         }
+    };
+
+    // Main render loop: own and mutate model here only
+    while running.load(Ordering::SeqCst) {
+        // Drain input commands
+        while let Ok(cmd) = rx.try_recv() {
+            handle_command(&mut model, cmd, &running);
+        }
+
+        model.update();
+        model.render(&mut frame_buffer);
+
         framebuffer.write_frame(&frame_buffer)?;
         
         // Control frame rate
