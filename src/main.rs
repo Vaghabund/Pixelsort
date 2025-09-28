@@ -61,9 +61,11 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
     {
         use evdev::{Device, EventType, InputEventKind, Key};
 
-        // Try to find keyboard device
+        // Try to find keyboard device - prefer actual keyboards over mice
         let keyboard_device = {
             let mut keyboard = None;
+            let mut devices = Vec::new();
+            
             if let Ok(entries) = std::fs::read_dir("/dev/input") {
                 for entry in entries.flatten() {
                     let path = entry.path();
@@ -71,15 +73,27 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
                         if fname.starts_with("event") {
                             if let Ok(device) = Device::open(&path) {
                                 if device.supported_events().contains(EventType::KEY) {
-                                    println!("Found keyboard device: {:?}", path);
-                                    keyboard = Some(device);
-                                    break;
+                                    // Check device name to prefer keyboards over mice
+                                    let name = device.name().unwrap_or("").to_lowercase();
+                                    let priority = if name.contains("keyboard") { 1 }
+                                                 else if name.contains("mouse") { 3 }
+                                                 else { 2 };
+                                    devices.push((priority, path.clone(), device));
                                 }
                             }
                         }
                     }
                 }
             }
+            
+            // Sort by priority (1=keyboard, 2=other, 3=mouse)
+            devices.sort_by_key(|(priority, _, _)| *priority);
+            
+            if let Some((_, path, device)) = devices.into_iter().next() {
+                println!("Found keyboard device: {:?}", path);
+                keyboard = Some(device);
+            }
+            
             keyboard
         };
 
