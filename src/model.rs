@@ -117,10 +117,15 @@ impl Model {
     }
 
     pub fn render(&self, frame: &mut [u8]) {
-        let img = if self.vertical_mode { &self.img_vertical } else { &self.img_horizontal };
+        // First clear the entire frame buffer to black to ensure full screen update
+        for pixel in frame.chunks_exact_mut(4) {
+            pixel.copy_from_slice(&[0, 0, 0, 255]);
+        }
 
+        let img = if self.vertical_mode { &self.img_vertical } else { &self.img_horizontal };
         let w = self.width as usize;
-        // Use model.width to compute coordinates so resolution is configurable
+        
+        // Now render the image
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
             let x = (i % w) as u32;
             let y = (i / w) as u32;
@@ -128,9 +133,8 @@ impl Model {
             if x < self.width && y < self.height {
                 let img_pixel = img.get_pixel(x, y);
                 pixel.copy_from_slice(&[img_pixel[0], img_pixel[1], img_pixel[2], 255]);
-            } else {
-                pixel.copy_from_slice(&[0, 0, 0, 255]);
             }
+            // Already cleared to black above, so no need for else case
         }
     }
 

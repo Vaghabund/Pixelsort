@@ -153,6 +153,10 @@ impl FrameBuffer {
         }
 
         self.file.flush()?;
+        
+        // Force filesystem sync to ensure framebuffer is updated immediately
+        self.file.sync_all().unwrap_or_default();
+        
         Ok(())
     }
 }
