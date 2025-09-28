@@ -112,6 +112,7 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
                             for event in events {
                                 if let InputEventKind::Key(key) = event.kind() {
                                     if event.value() == 1 { // Key pressed
+                                        println!("Key detected: {:?}", key);
                                         let cmd = match key {
                                             Key::KEY_ESC => Some(UiCommand::Quit),
                                             Key::KEY_UP => Some(UiCommand::IncreaseBrightness),
@@ -123,6 +124,7 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
                                             _ => None,
                                         };
                                         if let Some(c) = cmd {
+                                            println!("Command sent: {:?}", c);
                                             let _ = tx_clone.send(c);
                                             // Fast-path for quit: also set running flag so thread will exit quickly
                                             if matches!(c, UiCommand::Quit) {
@@ -179,19 +181,40 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Main render loop: own and mutate model here only
+    let mut last_render = std::time::Instant::now();
+    let mut needs_redraw = true;
+    let mut frame_count = 0;
+    let frame_rate_limit = Duration::from_millis(100); // 10fps instead of 60fps
+    
     while running.load(Ordering::SeqCst) {
+        let mut commands_processed = 0;
+        
         // Drain input commands
         while let Ok(cmd) = rx.try_recv() {
             handle_command(&mut model, cmd, &running);
+            needs_redraw = true;
+            commands_processed += 1;
         }
-
-        model.update();
-        model.render(&mut frame_buffer);
-
-        framebuffer.write_frame(&frame_buffer)?;
         
-        // Control frame rate
-        thread::sleep(Duration::from_millis(16)); // ~60fps
+        // Only render if we need to redraw and enough time has passed
+        let now = std::time::Instant::now();
+        if needs_redraw && now.duration_since(last_render) >= frame_rate_limit {
+            model.update();
+            model.render(&mut frame_buffer);
+            framebuffer.write_frame(&frame_buffer)?;
+            
+            needs_redraw = false;
+            last_render = now;
+            frame_count += 1;
+            
+            // Print performance info every 50 frames
+            if frame_count % 50 == 0 {
+                println!("Frame {}, commands processed: {}", frame_count, commands_processed);
+            }
+        } else {
+            // Sleep longer when not rendering to reduce CPU usage
+            thread::sleep(Duration::from_millis(10));
+        }
     }
     
     println!("Pixelsort terminated.");
