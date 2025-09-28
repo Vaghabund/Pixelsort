@@ -112,7 +112,6 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
                             for event in events {
                                 if let InputEventKind::Key(key) = event.kind() {
                                     if event.value() == 1 { // Key pressed
-                                        println!("Key detected: {:?}", key);
                                         let cmd = match key {
                                             Key::KEY_ESC => Some(UiCommand::Quit),
                                             Key::KEY_UP => Some(UiCommand::IncreaseBrightness),
@@ -124,7 +123,6 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
                                             _ => None,
                                         };
                                         if let Some(c) = cmd {
-                                            println!("Command sent: {:?}", c);
                                             let _ = tx_clone.send(c);
                                             // Fast-path for quit: also set running flag so thread will exit quickly
                                             if matches!(c, UiCommand::Quit) {
@@ -181,40 +179,19 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Main render loop: own and mutate model here only
-    let mut last_render = std::time::Instant::now();
-    let mut needs_redraw = true;
-    let mut frame_count = 0;
-    let frame_rate_limit = Duration::from_millis(100); // 10fps instead of 60fps
-    
     while running.load(Ordering::SeqCst) {
-        let mut commands_processed = 0;
-        
         // Drain input commands
         while let Ok(cmd) = rx.try_recv() {
             handle_command(&mut model, cmd, &running);
-            needs_redraw = true;
-            commands_processed += 1;
         }
+
+        model.update();
+        model.render(&mut frame_buffer);
+
+        framebuffer.write_frame(&frame_buffer)?;
         
-        // Only render if we need to redraw and enough time has passed
-        let now = std::time::Instant::now();
-        if needs_redraw && now.duration_since(last_render) >= frame_rate_limit {
-            model.update();
-            model.render(&mut frame_buffer);
-            framebuffer.write_frame(&frame_buffer)?;
-            
-            needs_redraw = false;
-            last_render = now;
-            frame_count += 1;
-            
-            // Print performance info every 50 frames
-            if frame_count % 50 == 0 {
-                println!("Frame {}, commands processed: {}", frame_count, commands_processed);
-            }
-        } else {
-            // Sleep longer when not rendering to reduce CPU usage
-            thread::sleep(Duration::from_millis(10));
-        }
+        // Control frame rate
+        thread::sleep(Duration::from_millis(16)); // ~60fps
     }
     
     println!("Pixelsort terminated.");
@@ -222,50 +199,117 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn run_window_mode() -> Result<(), Box<dyn std::error::Error>> {
-    // For now, just run a simple console version when not in framebuffer mode
-    println!("Window mode not implemented for this Pi setup. Use USE_FRAMEBUFFER=1");
+    use pixels::{Pixels, SurfaceTexture};
+    use winit::{
+        event::{Event, WindowEvent},
+        event_loop::{ControlFlow, EventLoop},
+        keyboard::KeyCode,
+        window::WindowBuilder,
+    };
+    use winit_input_helper::WinitInputHelper;
+
+    println!("Running in HDMI window mode...");
+    println!("Controls: Arrow Up/Down = brightness, M = mode, N = direction, B = random, Enter = save, Esc = quit");
     
     let mut model = Model::new();
+    let width = model.width;
+    let height = model.height;
     
-    // Simple console interaction
-    use std::io::{self, Write};
-    loop {
-        print!("Commands: (q)uit, (u)p brightness, (d)own brightness, (s)ave, (n)ext direction, (m)ode, (r)andom: ");
-        io::stdout().flush()?;
-        
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        
-        match input.trim() {
-            "q" => break,
-            "u" => {
+    // Create window and event loop
+    let event_loop = EventLoop::new()?;
+    let window = {
+        WindowBuilder::new()
+            .with_title("Pixelsort - Interactive Pixel Art")
+            .with_inner_size(winit::dpi::LogicalSize::new(width * 2, height * 2)) // 2x scale for better visibility
+            .build(&event_loop)?
+    };
+
+    // Create pixel buffer
+    let surface_texture = SurfaceTexture::new(width * 2, height * 2, &window);
+    let mut pixels = Pixels::new(width, height, surface_texture)?;
+    let mut input_helper = WinitInputHelper::new();
+
+    // Initial render
+    model.update();
+    let mut frame_buffer = vec![0u8; (width * height * 4) as usize];
+    model.render(&mut frame_buffer);
+
+    let window_id = window.id();
+    
+    event_loop.run(move |event, elwt| {
+        if input_helper.update(&event) {
+            // Handle keyboard input
+            
+            if input_helper.key_pressed(KeyCode::Escape) {
+                elwt.exit();
+                return;
+            }
+
+            let mut needs_update = false;
+
+            if input_helper.key_pressed(KeyCode::ArrowUp) {
                 model.increase_brightness();
-                println!("Brightness increased");
-            },
-            "d" => {
+                needs_update = true;
+                println!("Brightness: {}", if model.vertical_mode { model.brightness_value_vertical } else { model.brightness_value });
+            }
+            if input_helper.key_pressed(KeyCode::ArrowDown) {
                 model.decrease_brightness();
-                println!("Brightness decreased");
-            },
-            "s" => {
+                needs_update = true;
+                println!("Brightness: {}", if model.vertical_mode { model.brightness_value_vertical } else { model.brightness_value });
+            }
+            if input_helper.key_pressed(KeyCode::KeyM) {
+                model.switch_sort_mode();
+                needs_update = true;
+                println!("Sort mode: {:?}", model.sort_mode);
+            }
+            if input_helper.key_pressed(KeyCode::KeyN) {
+                model.switch_direction();
+                needs_update = true;
+                println!("Direction: {}", if model.vertical_mode { "Vertical" } else { "Horizontal" });
+            }
+            if input_helper.key_pressed(KeyCode::KeyB) {
+                model.toggle_random_exclude();
+                needs_update = true;
+                println!("Random mode: {}", if model.random_exclude_mode { "ON" } else { "OFF" });
+            }
+            if input_helper.key_pressed(KeyCode::Enter) {
                 model.update();
                 let filename = model.save_current_iteration();
                 println!("Saved: {}", filename);
-            },
-            "n" => {
-                model.switch_direction();
-                println!("Direction switched");
-            },
-            "m" => {
-                model.switch_sort_mode();
-                println!("Sort mode switched");
-            },
-            "r" => {
-                model.toggle_random_exclude();
-                println!("Random mode toggled");
-            },
-            _ => println!("Unknown command"),
+            }
+
+            if needs_update {
+                model.update();
+                model.render(&mut frame_buffer);
+                
+                // Copy to pixel buffer
+                let pixel_data = pixels.frame_mut();
+                pixel_data.copy_from_slice(&frame_buffer);
+                
+                // Trigger redraw
+                elwt.set_control_flow(ControlFlow::Poll);
+            }
         }
-    }
-    
+
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                window_id: id,
+            } if id == window_id => {
+                if let Err(err) = pixels.render() {
+                    eprintln!("Render error: {}", err);
+                    elwt.exit();
+                }
+            }
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                window_id: id,
+            } if id == window_id => {
+                elwt.exit();
+            }
+            _ => {}
+        }
+    })?;
+
     Ok(())
 }
