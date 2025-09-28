@@ -43,7 +43,7 @@ fn run_framebuffer_mode() -> Result<(), Box<dyn std::error::Error>> {
     use std::time::Duration;
 
     // Commands produced by input thread and consumed by main loop
-    #[derive(Debug)]
+    #[derive(Debug, Clone, Copy)]
     enum UiCommand {
         Quit,
         IncreaseBrightness,
