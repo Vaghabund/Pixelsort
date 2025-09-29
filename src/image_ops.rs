@@ -1,7 +1,7 @@
 // image_ops.rs
 // Bildverarbeitungsfunktionen für Pixel-Sorting-Projekt
 
-use nannou::image;
+use image;
 use crate::model::SortMode;
 use crate::random_sort;
 
@@ -137,5 +137,36 @@ pub fn vertical_sort_and_update_texture(app: &nannou::App, model: &mut Model) {
         }
     }
     model.img_vertical = img.clone();
-    model.texture = nannou::wgpu::Texture::from_image(app, &DynamicImage::ImageRgba8(img));
+}
+
+pub fn sort_and_update_image(img: &mut image::RgbaImage, brightness_value: u8, use_random: bool) {
+    let (width, height) = img.dimensions();
+    
+    for y in 0..height {
+        let mut x = 0;
+        while x < width {
+            let (start, end) = get_next_segment_row_bright(img, y, x, width, brightness_value);
+            if start >= end || start >= width {
+                break;
+            }
+            sort_row_segment(img, y, start, end, use_random);
+            x = end + 1;
+        }
+    }
+}
+
+pub fn vertical_sort_and_update_image(img: &mut image::RgbaImage, brightness_value: u8, use_random: bool) {
+    let (width, height) = img.dimensions();
+    
+    for x in 0..width {
+        let mut y = 0;
+        while y < height {
+            let (start, end) = get_next_segment_column_bright(img, x, y, height, brightness_value);
+            if start >= end || start >= height {
+                break;
+            }
+            sort_column_segment(img, x, start, end, use_random);
+            y = end + 1;
+        }
+    }
 }

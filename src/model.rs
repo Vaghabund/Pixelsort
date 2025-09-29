@@ -1,7 +1,8 @@
 // model.rs
 // Enthält die zentrale Model-Struktur und Enums für das Pixel-Sorting-Projekt
 
-use nannou::image;
+use image;
+use std::fs;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum SortMode {
@@ -13,7 +14,6 @@ pub enum SortMode {
 #[derive(Clone)]
 pub struct Model {
     pub image_counter: usize,
-    pub texture: nannou::wgpu::Texture,
     pub img_original: image::RgbaImage,
     pub img_horizontal: image::RgbaImage,
     pub img_vertical: image::RgbaImage,
@@ -25,7 +25,7 @@ pub struct Model {
     pub vertical_mode: bool,
     pub last_vertical_mode: bool,
     pub sort_mode: SortMode,
-    pub random_exclude_mode: bool, // Neuer Toggle für Random-Exclude
+    pub random_exclude_mode: bool,
 }
 
 impl Model {
@@ -132,5 +132,85 @@ impl Model {
             }
         }
         self.needs_resort = true;
+    }
+
+    pub fn new(width: u32, height: u32) -> Self {
+        // Find first image in assets directory
+        let img_path = fs::read_dir("assets")
+            .unwrap_or_else(|_| fs::read_dir(".").unwrap())
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .find(|path| {
+                if let Some(ext) = path.extension() {
+                    matches!(
+                        ext.to_str().unwrap_or("").to_lowercase().as_str(),
+                        "png" | "jpg" | "jpeg" | "bmp" | "gif"
+                    )
+                } else {
+                    false
+                }
+            })
+            .expect("No image found in assets or current directory!");
+
+        let img = image::open(&img_path)
+            .expect("Could not load image")
+            .to_rgba8();
+
+        // Resize to fit the window
+        let img = image::imageops::resize(&img, width, height, image::imageops::FilterType::Lanczos3);
+        let (img_width, img_height) = img.dimensions();
+
+        let img_horizontal = img.clone();
+        let img_vertical = img.clone();
+
+        Model {
+            image_counter: 1,
+            img_original: img,
+            img_horizontal,
+            img_vertical,
+            brightness_value: 60,
+            brightness_value_vertical: 60,
+            width: img_width,
+            height: img_height,
+            needs_resort: true,
+            vertical_mode: false,
+            last_vertical_mode: false,
+            sort_mode: SortMode::Brightness,
+            random_exclude_mode: false,
+        }
+    }
+
+    pub fn update(&mut self) {
+        if self.needs_resort {
+            crate::image_ops::set_sort_mode(self.sort_mode);
+            if !self.vertical_mode {
+                crate::image_ops::sort_and_update_image(&mut self.img_horizontal, self.brightness_value, self.random_exclude_mode);
+            } else {
+                crate::image_ops::vertical_sort_and_update_image(&mut self.img_vertical, self.brightness_value_vertical, self.random_exclude_mode);
+            }
+            self.needs_resort = false;
+        }
+    }
+
+    pub fn render(&self, frame: &mut [u8]) {
+        let img = if self.vertical_mode { &self.img_vertical } else { &self.img_horizontal };
+        
+        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+            let x = (i % self.width as usize) as u32;
+            let y = (i / self.width as usize) as u32;
+            
+            if x < self.width && y < self.height {
+                let img_pixel = img.get_pixel(x, y);
+                pixel[0] = img_pixel[0]; // R
+                pixel[1] = img_pixel[1]; // G  
+                pixel[2] = img_pixel[2]; // B
+                pixel[3] = 255;          // A
+            } else {
+                pixel[0] = 0;
+                pixel[1] = 0;
+                pixel[2] = 0;
+                pixel[3] = 255;
+            }
+        }
     }
 }
