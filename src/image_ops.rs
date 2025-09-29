@@ -84,10 +84,9 @@ pub fn get_next_segment_column_bright(img: &image::RgbaImage, x: u32, mut y: u32
 }
 
 // Hauptfunktionen für horizontales und vertikales Sortieren
-use nannou::image::DynamicImage;
 use crate::model::Model;
 
-pub fn sort_and_update_texture(app: &nannou::App, model: &mut Model) {
+pub fn sort_and_update_image(model: &mut Model) {
     let mut img = model.img_original.clone();
     let (width, height) = (model.width, model.height);
     let use_random = model.random_exclude_mode;
@@ -117,10 +116,9 @@ pub fn sort_and_update_texture(app: &nannou::App, model: &mut Model) {
         }
     }
     model.img_horizontal = img.clone();
-    model.texture = nannou::wgpu::Texture::from_image(app, &DynamicImage::ImageRgba8(img));
 }
 
-pub fn vertical_sort_and_update_texture(app: &nannou::App, model: &mut Model) {
+pub fn vertical_sort_and_update_image(model: &mut Model) {
     let mut img = model.img_horizontal.clone();
     let (width, height) = (model.width, model.height);
     let use_random = model.random_exclude_mode;
@@ -137,36 +135,4 @@ pub fn vertical_sort_and_update_texture(app: &nannou::App, model: &mut Model) {
         }
     }
     model.img_vertical = img.clone();
-}
-
-pub fn sort_and_update_image(img: &mut image::RgbaImage, brightness_value: u8, use_random: bool) {
-    let (width, height) = img.dimensions();
-    
-    for y in 0..height {
-        let mut x = 0;
-        while x < width {
-            let (start, end) = get_next_segment_row_bright(img, y, x, width, brightness_value);
-            if start >= end || start >= width {
-                break;
-            }
-            sort_row_segment(img, y, start, end, use_random);
-            x = end + 1;
-        }
-    }
-}
-
-pub fn vertical_sort_and_update_image(img: &mut image::RgbaImage, brightness_value: u8, use_random: bool) {
-    let (width, height) = img.dimensions();
-    
-    for x in 0..width {
-        let mut y = 0;
-        while y < height {
-            let (start, end) = get_next_segment_column_bright(img, x, y, height, brightness_value);
-            if start >= end || start >= height {
-                break;
-            }
-            sort_column_segment(img, x, start, end, use_random);
-            y = end + 1;
-        }
-    }
 }

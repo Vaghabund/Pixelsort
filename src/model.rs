@@ -184,9 +184,9 @@ impl Model {
         if self.needs_resort {
             crate::image_ops::set_sort_mode(self.sort_mode);
             if !self.vertical_mode {
-                crate::image_ops::sort_and_update_image(&mut self.img_horizontal, self.brightness_value, self.random_exclude_mode);
+                crate::image_ops::sort_and_update_image(self);
             } else {
-                crate::image_ops::vertical_sort_and_update_image(&mut self.img_vertical, self.brightness_value_vertical, self.random_exclude_mode);
+                crate::image_ops::vertical_sort_and_update_image(self);
             }
             self.needs_resort = false;
         }
