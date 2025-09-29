@@ -201,9 +201,9 @@ impl Model {
             
             if x < self.width && y < self.height {
                 let img_pixel = img.get_pixel(x, y);
-                pixel[0] = img_pixel[0]; // R
+                pixel[0] = img_pixel[2]; // B (Blue first for BGRA)
                 pixel[1] = img_pixel[1]; // G  
-                pixel[2] = img_pixel[2]; // B
+                pixel[2] = img_pixel[0]; // R (Red last for BGRA)
                 pixel[3] = 255;          // A
             } else {
                 pixel[0] = 0;
