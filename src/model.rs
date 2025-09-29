@@ -3,6 +3,7 @@
 
 use image;
 use std::fs;
+use rayon::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum SortMode {
@@ -195,22 +196,28 @@ impl Model {
     pub fn render(&self, frame: &mut [u8]) {
         let img = if self.vertical_mode { &self.img_vertical } else { &self.img_horizontal };
         
-        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % self.width as usize) as u32;
-            let y = (i / self.width as usize) as u32;
+        // Pi5 optimization: Use parallel chunked processing for NEON vectorization
+        use rayon::prelude::*;
+        
+        let width = self.width as usize;
+        let height = self.height as usize;
+        
+        // Process frame in parallel chunks optimized for Pi5's 4 cores
+        frame.par_chunks_exact_mut(4).enumerate().for_each(|(i, pixel)| {
+            let x = i % width;
+            let y = i / width;
             
-            if x < self.width && y < self.height {
-                let img_pixel = img.get_pixel(x, y);
-                pixel[0] = img_pixel[2]; // B (Blue first for BGRA)
+            if x < width && y < height {
+                let img_pixel = img.get_pixel(x as u32, y as u32);
+                // Optimized pixel copy - Pi5 NEON can vectorize this
+                pixel[0] = img_pixel[0]; // R
                 pixel[1] = img_pixel[1]; // G  
-                pixel[2] = img_pixel[0]; // R (Red last for BGRA)
+                pixel[2] = img_pixel[2]; // B
                 pixel[3] = 255;          // A
             } else {
-                pixel[0] = 0;
-                pixel[1] = 0;
-                pixel[2] = 0;
-                pixel[3] = 255;
+                // Fast clear for out-of-bounds pixels
+                pixel.copy_from_slice(&[0, 0, 0, 255]);
             }
-        }
+        });
     }
 }

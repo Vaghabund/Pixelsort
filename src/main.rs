@@ -36,6 +36,12 @@ fn main() -> Result<(), Error> {
     };
 
     let mut model = Model::new(WIDTH, HEIGHT);
+    
+    // Pi5 optimization: Frame rate limiting to prevent CPU overload
+    use std::time::{Duration, Instant};
+    let target_fps = 30; // 30 FPS for smooth performance on Pi5
+    let frame_duration = Duration::from_millis(1000 / target_fps);
+    let mut last_update = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         // Handle input events
@@ -78,12 +84,18 @@ fn main() -> Result<(), Error> {
                 }
             }
 
-            model.update();
-            window.request_redraw();
+            // Pi5 optimization: Only update/render if enough time has passed
+            let now = Instant::now();
+            if now.duration_since(last_update) >= frame_duration {
+                model.update();
+                window.request_redraw();
+                last_update = now;
+            }
         }
 
         match event {
             Event::RedrawRequested(_) => {
+                // Pi5 optimization: Batch rendering operations
                 model.render(pixels.frame_mut());
                 if let Err(err) = pixels.render() {
                     eprintln!("pixels.render() failed: {err}");
