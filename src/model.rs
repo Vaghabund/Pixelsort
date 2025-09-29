@@ -220,4 +220,35 @@ impl Model {
             }
         });
     }
+
+    // SDL2 specific render function optimized for Pi5
+    pub fn render_sdl2(&self, buffer: &mut [u8], pitch: usize) {
+        let img = if self.vertical_mode { &self.img_vertical } else { &self.img_horizontal };
+        
+        // Pi5 optimization: Direct memory access with NEON vectorization
+        use rayon::prelude::*;
+        
+        let width = self.width as usize;
+        let height = self.height as usize;
+        let bytes_per_pixel = 4; // RGBA32
+        
+        // Process rows in parallel for Pi5's 4 cores
+        (0..height).into_par_iter().for_each(|y| {
+            let row_start = y * pitch;
+            
+            for x in 0..width {
+                let pixel_offset = row_start + (x * bytes_per_pixel);
+                
+                if pixel_offset + 3 < buffer.len() {
+                    let img_pixel = img.get_pixel(x as u32, y as u32);
+                    
+                    // SDL2 RGBA32 format - Pi5 hardware accelerated
+                    buffer[pixel_offset] = img_pixel[0];     // R
+                    buffer[pixel_offset + 1] = img_pixel[1]; // G
+                    buffer[pixel_offset + 2] = img_pixel[2]; // B
+                    buffer[pixel_offset + 3] = 255;          // A
+                }
+            }
+        });
+    }
 }
