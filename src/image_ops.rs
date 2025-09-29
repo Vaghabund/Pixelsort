@@ -2,7 +2,6 @@
 // Bildverarbeitungsfunktionen für Pixel-Sorting-Projekt
 
 use image;
-use rayon::prelude::*;
 use crate::model::SortMode;
 use crate::random_sort;
 
@@ -20,55 +19,7 @@ pub fn brightness(px: &image::Rgba<u8>) -> u8 {
     ((r as u16 + g as u16 + b as u16) / 3) as u8
 }
 
-pub fn sort_row_segment(img: &mut image::RgbaImage, y: u32, x_start: u32, x_end: u32, use_random: bool) {
-    if use_random {
-        let mode = unsafe { CURRENT_SORT_MODE };
-        let sort_func = match mode {
-            SortMode::Brightness => random_sort::brightness_f32,
-            SortMode::Black => random_sort::red_value_f32,
-            SortMode::White => random_sort::inverted_red_f32,
-        };
-        random_sort::apply_random_exclude_to_row(img, y, x_start, x_end, sort_func);
-    } else {
-        let mut segment: Vec<_> = (x_start..x_end)
-            .map(|x| *img.get_pixel(x, y))
-            .collect();
-        let mode = unsafe { CURRENT_SORT_MODE };
-        segment.sort_by_key(|px| match mode {
-            SortMode::Brightness => brightness(px),
-            SortMode::Black => px[0] as u8,
-            SortMode::White => 255 - px[0] as u8,
-        });
-        for (i, px) in segment.into_iter().enumerate() {
-            img.put_pixel(x_start + i as u32, y, px);
-        }
-    }
-}
 
-pub fn sort_column_segment(img: &mut image::RgbaImage, x: u32, y_start: u32, y_end: u32, use_random: bool) {
-    if use_random {
-        let mode = unsafe { CURRENT_SORT_MODE };
-        let sort_func = match mode {
-            SortMode::Brightness => random_sort::brightness_f32,
-            SortMode::Black => random_sort::red_value_f32,
-            SortMode::White => random_sort::inverted_red_f32,
-        };
-        random_sort::apply_random_exclude_to_column(img, x, y_start, y_end, sort_func);
-    } else {
-        let mut segment: Vec<_> = (y_start..y_end)
-            .map(|y| *img.get_pixel(x, y))
-            .collect();
-        let mode = unsafe { CURRENT_SORT_MODE };
-        segment.sort_by_key(|px| match mode {
-            SortMode::Brightness => brightness(px),
-            SortMode::Black => px[0] as u8,
-            SortMode::White => 255 - px[0] as u8,
-        });
-        for (i, px) in segment.into_iter().enumerate() {
-            img.put_pixel(x, y_start + i as u32, px);
-        }
-    }
-}
 
 pub fn get_next_segment_row_bright(img: &image::RgbaImage, mut x: u32, y: u32, width: u32, brightness_value: u8) -> (u32, u32) {
     while x < width && brightness(img.get_pixel(x, y)) < brightness_value { x += 1; }

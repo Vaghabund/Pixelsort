@@ -19,10 +19,3 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-
-# Pi5 specific target optimizations
-[target.aarch64-unknown-linux-gnu]
-rustflags = [
-    "-C", "target-cpu=cortex-a76",
-    "-C", "target-feature=+neon,+fp-armv8,+crc",
-]

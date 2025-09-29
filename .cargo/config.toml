@@ -1,0 +1,11 @@
+# Pi5 ARM64 optimizations
+[target.aarch64-unknown-linux-gnu]
+rustflags = [
+    "-C", "target-cpu=cortex-a76",
+    "-C", "target-feature=+neon,+fp-armv8,+crc",
+]
+
+[env]
+# Pi5 specific environment variables for graphics
+WGPU_BACKEND = "gl"
+WGPU_POWER_PREF = "low"
