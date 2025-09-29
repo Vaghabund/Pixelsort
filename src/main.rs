@@ -13,6 +13,8 @@ use model::{Model, SortMode};
 use image_ops::{set_sort_mode, sort_and_update_texture, vertical_sort_and_update_texture};
 
 fn main() {
+    std::env::set_var("WGPU_BACKEND", "gl");
+    std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "1");
     nannou::app(model).update(update).view(view).event(event).run();
 }
 
@@ -34,10 +36,20 @@ fn model(app: &App) -> Model {
         })
         .expect("Kein Bild im assets-Ordner gefunden!");
     let img = image::open(&img_path).expect("Bild konnte nicht geladen werden").to_rgba8();
-    let (width, height) = img.dimensions();
+    let (orig_width, orig_height) = img.dimensions();
+    
+    // Scale to fit 7-inch screen (assume 1024x600 or similar)
+    let max_width = 800;
+    let max_height = 480;
+    let scale = ((max_width as f32 / orig_width as f32).min(max_height as f32 / orig_height as f32)).min(1.0);
+    let width = (orig_width as f32 * scale) as u32;
+    let height = (orig_height as f32 * scale) as u32;
+    
+    let img = image::imageops::resize(&img, width, height, image::imageops::FilterType::Lanczos3);
 
     app.new_window()
         .size(width, height)
+        .title("Pixelsort - HDMI")
         .view(view)
         .build()
         .unwrap();
