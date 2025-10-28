@@ -101,11 +101,9 @@ cargo install cross
 cross build --release --target aarch64-unknown-linux-gnu
 ```
 
-Or use the provided scripts:
-- `build_for_pi.sh` (Linux/macOS)
-- `build_for_pi.bat` (Windows)
-
 The binary will be at: `target/aarch64-unknown-linux-gnu/release/pixelsort-pi`
+
+For Pi deployment with auto-update and kiosk mode, see the [Deployment Guide](deployment/README.md).
 
 ## UI Flow
 
@@ -194,5 +192,7 @@ Issues and PRs are welcome! Please ensure your code:
 ## Links
 
 - [Deployment Guide](deployment/README.md) - Complete setup instructions for Raspberry Pi
+- [UPS Setup Guide](docs/UPS_SETUP.md) - Hardware setup for battery monitoring
+- [Battery Display Documentation](docs/BATTERY_DISPLAY.md) - Battery monitoring feature details
 - [Copilot Instructions](.github/copilot-instructions.md) - Project architecture and development guidelines
 - [GitHub Repository](https://github.com/Vaghabund/Pixelsort)

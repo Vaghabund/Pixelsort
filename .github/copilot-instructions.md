@@ -56,8 +56,8 @@
 
 ```
 src/
-  main.rs               Entry point, window config, touch styles
-  ui.rs                 UI phases, buttons, sliders, rendering (1150+ lines)
+  main.rs               Entry point, window config, touch styles, UPS initialization
+  ui.rs                 UI phases, buttons, sliders, rendering (1600+ lines)
   pixel_sorter.rs       Algorithms, hue/threshold processing
   camera_controller.rs  rpicam streaming, snapshot, test patterns
   session.rs            Save/iterate, USB export, directory management
@@ -65,6 +65,9 @@ src/
   image_ops.rs          Image loading, tint blending
   texture.rs            egui texture helpers, frame optimization
   camera.rs             UI integration for camera capture
+  ups_monitor.rs        UPS battery monitoring, shutdown triggers
+  config.rs             Configuration management
+  image_processor.rs    Image processing utilities
 
 deployment/
   run_pixelsort.sh      Auto-update launcher (checks git, rebuilds)
@@ -73,8 +76,14 @@ deployment/
   pixelsort-kiosk.service Systemd unit file
   README.md             Complete deployment guide
 
+docs/
+  BATTERY_DISPLAY.md    Battery monitoring feature documentation
+  UPS_SETUP.md          UPS hardware setup guide
+
 assets/
   Harpy_ICON.png        Harpy logo (splash screen + sleep mode)
+
+ups_config.toml.template  Template for UPS configuration (user copies to ups_config.toml)
 
 sorted_images/          Output directory (git-ignored)
   session_YYYYMMDD_HHMMSS/

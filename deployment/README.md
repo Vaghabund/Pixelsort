@@ -255,6 +255,15 @@ sudo raspi-config
 
 ---
 
+## Optional: UPS Battery Monitoring
+
+For portable operation with a UPS battery, see the [UPS Setup Guide](../docs/UPS_SETUP.md) for:
+- Hardware setup and I2C configuration
+- Battery display and monitoring
+- Auto-shutdown on low battery
+
+---
+
 ## Support
 
 - **Issues**: https://github.com/Vaghabund/Pixelsort/issues
