@@ -1388,7 +1388,7 @@ impl PixelSorterApp {
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     vertical_slider(ui, &mut threshold, 
-                        0.0..=255.0, slider_width, full_slider_height, "Threshold")
+                        0.0..=120.0, slider_width, full_slider_height, "Threshold")
                 }).inner
             }).inner;
         
