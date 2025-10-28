@@ -2323,6 +2323,7 @@ dependencies = [
  "egui",
  "env_logger",
  "image",
+ "lazy_static",
  "log",
  "rfd",
  "tokio",

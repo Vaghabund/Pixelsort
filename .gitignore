@@ -33,6 +33,9 @@ Thumbs.db
 # Configuration files that might contain secrets
 # config.toml (uncomment if you want to ignore config files)
 
+# UPS configuration (user-specific hardware settings)
+ups_config.toml
+
 # Raspberry Pi specific
 *.img
 *.zip

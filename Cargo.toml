@@ -25,6 +25,9 @@ anyhow = "1.0"
 # Date and time for timestamped filenames
 chrono = "0.4"
 
+# Lazy static for global state
+lazy_static = "1.4"
+
 # Logging
 log = "0.4"
 env_logger = "0.10"

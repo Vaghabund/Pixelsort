@@ -7,6 +7,7 @@ use tokio::sync::RwLock;
 mod pixel_sorter;
 mod ui;
 mod camera_controller;
+mod ups_monitor;
 
 mod crop;
 mod texture;
@@ -17,6 +18,7 @@ mod camera;
 use crate::pixel_sorter::PixelSorter;
 use crate::ui::PixelSorterApp;
 use crate::camera_controller::CameraController;
+use crate::ups_monitor::UpsConfig;
 
 #[tokio::main]
 #[allow(clippy::arc_with_non_send_sync)]
@@ -28,6 +30,12 @@ async fn main() -> Result<()> {
     
     info!("Starting Raspberry Pi Pixel Sorter (Rust Edition)");
 
+    // Load UPS configuration
+    let ups_config = load_ups_config();
+    
+    // Start UPS monitoring (runs in background)
+    let _shutdown_flag = ups_monitor::start_monitoring(ups_config);
+    
     // Initialize components
     let pixel_sorter = Arc::new(PixelSorter::new());
 
@@ -150,5 +158,51 @@ fn load_icon() -> egui::IconData {
                 height,
             }
         }
+    }
+}
+
+fn load_ups_config() -> UpsConfig {
+    use std::fs;
+    
+    let config_path = "ups_config.toml";
+    
+    // Try to load from file
+    if let Ok(contents) = fs::read_to_string(config_path) {
+        // Simple TOML parsing for our needs
+        let mut config = UpsConfig::default();
+        
+        for line in contents.lines() {
+            let line = line.trim();
+            if line.starts_with('#') || line.is_empty() || line.starts_with('[') {
+                continue;
+            }
+            
+            if let Some((key, value)) = line.split_once('=') {
+                let key = key.trim();
+                let value = value.trim().trim_matches(|c| c == '"' || c == '\'');
+                
+                match key {
+                    "enabled" => config.enabled = value == "true",
+                    "i2c_bus" => config.i2c_bus = value.parse().unwrap_or(1),
+                    "i2c_address" => {
+                        // Handle hex format: 0x36
+                        if value.starts_with("0x") || value.starts_with("0X") {
+                            config.i2c_address = u8::from_str_radix(&value[2..], 16).unwrap_or(0x36);
+                        } else {
+                            config.i2c_address = value.parse().unwrap_or(0x36);
+                        }
+                    }
+                    "voltage_threshold" => config.voltage_threshold = value.parse().unwrap_or(6.4),
+                    "check_interval_secs" => config.check_interval_secs = value.parse().unwrap_or(10),
+                    _ => {}
+                }
+            }
+        }
+        
+        info!("UPS configuration loaded from {}", config_path);
+        config
+    } else {
+        info!("No UPS config found at {}, using defaults (disabled)", config_path);
+        UpsConfig::default()
     }
 }

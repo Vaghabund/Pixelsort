@@ -74,6 +74,12 @@ pub struct PixelSorterApp {
     pub last_interaction_time: Instant,
     pub sleep_logo: Option<egui::TextureHandle>,
     
+    // Shutdown menu
+    pub show_shutdown_menu: bool,
+    
+    // Developer menu
+    pub show_developer_menu: bool,
+    
     // Other
     pub tint_enabled: bool,
 }
@@ -136,6 +142,8 @@ impl PixelSorterApp {
             is_sleeping: false,
             last_interaction_time: Instant::now(),
             sleep_logo: None,
+            show_shutdown_menu: false,
+            show_developer_menu: false,
             tint_enabled: false,
         }
     }
@@ -171,22 +179,29 @@ impl PixelSorterApp {
 
 impl eframe::App for PixelSorterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Check if UPS requested shutdown
+        if crate::ups_monitor::is_shutdown_requested() {
+            log::warn!("UPS shutdown requested - closing application");
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            return;
+        }
+        
         // Hide cursor in kiosk mode - force it every frame
         ctx.set_cursor_icon(egui::CursorIcon::None);
         ctx.output_mut(|o| o.cursor_icon = egui::CursorIcon::None);
         
-        // ESC key to exit (for debugging in kiosk mode with keyboard)
+        // ESC key to open developer menu (for debugging with keyboard)
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
-            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            self.show_developer_menu = !self.show_developer_menu;
         }
         
-        // Hidden exit area for touchscreen (top-left corner, tap 5 times within 3 seconds)
-        egui::Area::new("exit_area")
+        // Hidden developer menu trigger (top-left corner, tap 5 times within 3 seconds)
+        egui::Area::new("dev_menu_trigger")
             .fixed_pos(egui::pos2(0.0, 0.0))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let exit_button_size = egui::vec2(50.0, 50.0);
-                let (_rect, response) = ui.allocate_exact_size(exit_button_size, egui::Sense::click());
+                let trigger_size = egui::vec2(50.0, 50.0);
+                let (_rect, response) = ui.allocate_exact_size(trigger_size, egui::Sense::click());
                 
                 if response.clicked() {
                     let now = Instant::now();
@@ -201,9 +216,10 @@ impl eframe::App for PixelSorterApp {
                     self.exit_tap_count += 1;
                     self.exit_tap_last_time = Some(now);
                     
-                    // Exit after 5 taps
+                    // Open developer menu after 5 taps
                     if self.exit_tap_count >= 5 {
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        self.show_developer_menu = true;
+                        self.exit_tap_count = 0; // Reset counter
                     }
                 }
             });
@@ -439,6 +455,15 @@ impl PixelSorterApp {
                 // Overlay button zone at bottom using Area (floats on top)
                 self.render_button_overlay(ui, ctx, full_rect);
                 
+                // Show battery indicator in top-right corner
+                self.render_battery_indicator(ctx, full_rect);
+                
+                // Show shutdown button in top-left corner (discrete power icon)
+                self.render_shutdown_button(ctx, full_rect);
+                
+                // Show developer menu (if triggered)
+                self.render_developer_menu(ctx, full_rect);
+                
                 // Show export status message popup (centered, top-center)
                 self.render_export_message(ctx, full_rect);
             });
@@ -478,6 +503,380 @@ impl PixelSorterApp {
                 });
         }
     }
+    
+    fn render_battery_indicator(&mut self, ctx: &egui::Context, _screen_rect: egui::Rect) {
+        let battery_status = crate::ups_monitor::get_battery_status();
+        
+        // Only show if battery is available
+        if !battery_status.is_available {
+            return;
+        }
+        
+        egui::Area::new("battery_indicator")
+            .anchor(egui::Align2::RIGHT_TOP, egui::vec2(-UI_PADDING, UI_PADDING))
+            .order(egui::Order::Foreground)
+            .show(ctx, |ui| {
+                egui::Frame::none()
+                    .fill(egui::Color32::from_rgba_unmultiplied(0, 0, 0, 180))
+                    .rounding(egui::Rounding::same(8.0))
+                    .inner_margin(egui::Margin::symmetric(12.0, 8.0))
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            // Battery icon (simple rectangle representation)
+                            let icon_size = egui::vec2(30.0, 16.0);
+                            let (icon_rect, _) = ui.allocate_exact_size(icon_size, egui::Sense::hover());
+                            
+                            // Determine battery color based on percentage
+                            let battery_color = if battery_status.is_charging {
+                                egui::Color32::from_rgb(100, 200, 100) // Green when charging
+                            } else if battery_status.percentage < 20.0 {
+                                egui::Color32::from_rgb(220, 50, 50) // Red when low
+                            } else if battery_status.percentage < 40.0 {
+                                egui::Color32::from_rgb(220, 180, 50) // Yellow when medium
+                            } else {
+                                egui::Color32::from_rgb(150, 150, 150) // Grey when good
+                            };
+                            
+                            // Draw battery outline
+                            ui.painter().rect_stroke(
+                                icon_rect,
+                                2.0,
+                                egui::Stroke::new(2.0, egui::Color32::WHITE),
+                            );
+                            
+                            // Draw battery fill
+                            let fill_width = (icon_rect.width() - 4.0) * (battery_status.percentage / 100.0);
+                            let fill_rect = egui::Rect::from_min_size(
+                                egui::pos2(icon_rect.min.x + 2.0, icon_rect.min.y + 2.0),
+                                egui::vec2(fill_width, icon_rect.height() - 4.0),
+                            );
+                            ui.painter().rect_filled(fill_rect, 1.0, battery_color);
+                            
+                            // Draw battery terminal (small nub on right)
+                            let terminal_rect = egui::Rect::from_min_size(
+                                egui::pos2(icon_rect.max.x, icon_rect.min.y + 4.0),
+                                egui::vec2(3.0, icon_rect.height() - 8.0),
+                            );
+                            ui.painter().rect_filled(terminal_rect, 1.0, egui::Color32::WHITE);
+                            
+                            ui.add_space(4.0);
+                            
+                            // Text with percentage and voltage
+                            let text = if battery_status.is_charging {
+                                format!("⚡ {:.0}%", battery_status.percentage)
+                            } else {
+                                format!("{:.0}%", battery_status.percentage)
+                            };
+                            
+                            ui.label(
+                                egui::RichText::new(text)
+                                    .color(egui::Color32::WHITE)
+                                    .size(16.0)
+                            );
+                            
+                            // Show voltage in smaller text
+                            ui.label(
+                                egui::RichText::new(format!("{:.1}V", battery_status.voltage))
+                                    .color(egui::Color32::from_rgb(180, 180, 180))
+                                    .size(12.0)
+                            );
+                        });
+                    });
+            });
+    }
+    
+    fn render_shutdown_button(&mut self, ctx: &egui::Context, _screen_rect: egui::Rect) {
+        egui::Area::new("shutdown_button")
+            .anchor(egui::Align2::LEFT_TOP, egui::vec2(UI_PADDING, UI_PADDING))
+            .order(egui::Order::Foreground)
+            .show(ctx, |ui| {
+                let button_size = 40.0;
+                let button_pos = ui.cursor().min;
+                let button_rect = egui::Rect::from_min_size(
+                    button_pos,
+                    egui::vec2(button_size, button_size),
+                );
+                
+                let response = ui.allocate_rect(button_rect, egui::Sense::click());
+                
+                // Draw power icon (circle with vertical line at top)
+                let center = button_rect.center();
+                let radius = button_size * 0.35;
+                
+                // Background circle
+                let bg_color = if response.hovered() {
+                    egui::Color32::from_rgba_unmultiplied(220, 50, 50, 200) // Red on hover
+                } else {
+                    egui::Color32::from_rgba_unmultiplied(80, 80, 80, 180) // Grey normally
+                };
+                
+                ui.painter().circle_filled(center, button_size * 0.45, bg_color);
+                
+                // Power symbol: partial circle (arc) + line
+                let stroke = egui::Stroke::new(3.0, egui::Color32::WHITE);
+                
+                // Vertical line (power button line)
+                let line_start = egui::pos2(center.x, center.y - radius * 0.8);
+                let line_end = egui::pos2(center.x, center.y + radius * 0.3);
+                ui.painter().line_segment([line_start, line_end], stroke);
+                
+                // Arc (incomplete circle)
+                use std::f32::consts::PI;
+                let num_points = 20;
+                let start_angle = PI * 0.7; // Start at bottom-left
+                let end_angle = PI * 2.3;   // End at bottom-right
+                
+                let mut points = Vec::new();
+                for i in 0..=num_points {
+                    let t = i as f32 / num_points as f32;
+                    let angle = start_angle + (end_angle - start_angle) * t;
+                    let x = center.x + radius * angle.cos();
+                    let y = center.y + radius * angle.sin();
+                    points.push(egui::pos2(x, y));
+                }
+                
+                for i in 0..points.len() - 1 {
+                    ui.painter().line_segment([points[i], points[i + 1]], stroke);
+                }
+                
+                // Handle click
+                if response.clicked() {
+                    self.show_shutdown_menu = true;
+                }
+            });
+        
+        // Show shutdown confirmation menu
+        if self.show_shutdown_menu {
+            egui::Window::new("Power Options")
+                .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+                .collapsible(false)
+                .resizable(false)
+                .show(ctx, |ui| {
+                    ui.set_min_width(300.0);
+                    
+                    ui.heading("Power Options");
+                    ui.add_space(10.0);
+                    
+                    ui.vertical_centered(|ui| {
+                        // Shutdown button
+                        if ui.add_sized([250.0, 50.0], egui::Button::new("🔌 Shutdown")).clicked() {
+                            log::info!("Shutdown requested by user");
+                            if let Err(e) = initiate_shutdown() {
+                                log::error!("Failed to shutdown: {}", e);
+                                self.export_message = Some(format!("✗ Shutdown failed: {}", e));
+                                self.export_message_time = Some(Instant::now());
+                            }
+                            self.show_shutdown_menu = false;
+                        }
+                        
+                        ui.add_space(5.0);
+                        
+                        // Reboot button
+                        if ui.add_sized([250.0, 50.0], egui::Button::new("🔄 Reboot")).clicked() {
+                            log::info!("Reboot requested by user");
+                            if let Err(e) = initiate_reboot() {
+                                log::error!("Failed to reboot: {}", e);
+                                self.export_message = Some(format!("✗ Reboot failed: {}", e));
+                                self.export_message_time = Some(Instant::now());
+                            }
+                            self.show_shutdown_menu = false;
+                        }
+                        
+                        ui.add_space(5.0);
+                        
+                        // Exit app button
+                        if ui.add_sized([250.0, 50.0], egui::Button::new("❌ Exit App")).clicked() {
+                            log::info!("Exit app requested by user");
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+                        
+                        ui.add_space(10.0);
+                        
+                        // Cancel button
+                        if ui.add_sized([250.0, 40.0], egui::Button::new("Cancel")).clicked() {
+                            self.show_shutdown_menu = false;
+                        }
+                    });
+                });
+        }
+    }
+    
+    fn render_developer_menu(&mut self, ctx: &egui::Context, _screen_rect: egui::Rect) {
+        if !self.show_developer_menu {
+            return;
+        }
+        
+        egui::Window::new("🛠 Developer Menu")
+            .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.set_min_width(350.0);
+                
+                ui.heading("Developer Tools");
+                ui.add_space(10.0);
+                
+                ui.vertical_centered(|ui| {
+                    // System info section
+                    ui.group(|ui| {
+                        ui.label(egui::RichText::new("System Info").strong());
+                        ui.separator();
+                        
+                        // Battery status
+                        let battery = crate::ups_monitor::get_battery_status();
+                        if battery.is_available {
+                            let battery_text = if battery.is_charging {
+                                format!("🔋 Battery: {:.0}% ({:.1}V) ⚡ Charging", 
+                                       battery.percentage, battery.voltage)
+                            } else {
+                                format!("🔋 Battery: {:.0}% ({:.1}V)", 
+                                       battery.percentage, battery.voltage)
+                            };
+                            ui.label(battery_text);
+                        } else {
+                            ui.label("🔋 Battery: Not detected");
+                        }
+                        
+                        // Current phase
+                        ui.label(format!("📍 Phase: {:?}", self.current_phase));
+                        
+                        // Session info
+                        if let Some(ref session) = self.current_session_folder {
+                            ui.label(format!("📁 Session: {}", session));
+                            ui.label(format!("🔢 Iteration: {}", self.iteration_counter));
+                        }
+                    });
+                    
+                    ui.add_space(10.0);
+                    
+                    // Actions section
+                    ui.group(|ui| {
+                        ui.label(egui::RichText::new("Actions").strong());
+                        ui.separator();
+                        
+                        // Force update button
+                        if ui.add_sized([300.0, 40.0], egui::Button::new("🔄 Check for Updates")).clicked() {
+                            log::info!("Manual update check requested");
+                            if let Err(e) = trigger_update_check() {
+                                log::error!("Update check failed: {}", e);
+                                self.export_message = Some(format!("✗ Update check failed: {}", e));
+                                self.export_message_time = Some(Instant::now());
+                            } else {
+                                self.export_message = Some("✓ Update check initiated (check logs)".to_string());
+                                self.export_message_time = Some(Instant::now());
+                            }
+                            self.show_developer_menu = false;
+                        }
+                        
+                        ui.add_space(5.0);
+                        
+                        // Clear session
+                        if ui.add_sized([300.0, 40.0], egui::Button::new("🗑 Clear Session")).clicked() {
+                            self.iteration_counter = 0;
+                            self.current_session_folder = None;
+                            self.export_message = Some("✓ Session cleared".to_string());
+                            self.export_message_time = Some(Instant::now());
+                            log::info!("Session manually cleared");
+                            self.show_developer_menu = false;
+                        }
+                        
+                        ui.add_space(5.0);
+                        
+                        // Restart app
+                        if ui.add_sized([300.0, 40.0], egui::Button::new("🔁 Restart App")).clicked() {
+                            log::info!("App restart requested");
+                            self.export_message = Some("🔁 Restarting...".to_string());
+                            self.export_message_time = Some(Instant::now());
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                            // Note: systemd will auto-restart if configured with Restart=on-failure
+                        }
+                        
+                        ui.add_space(5.0);
+                        
+                        // Exit app
+                        if ui.add_sized([300.0, 40.0], egui::Button::new("❌ Exit App")).clicked() {
+                            log::info!("Exit app requested from dev menu");
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+                    });
+                    
+                    ui.add_space(10.0);
+                    
+                    // Close button
+                    if ui.add_sized([300.0, 40.0], egui::Button::new("Close Menu")).clicked() {
+                        self.show_developer_menu = false;
+                    }
+                });
+                
+                ui.add_space(5.0);
+                ui.label(egui::RichText::new("Tip: Press ESC or 5-tap top-left corner to toggle this menu")
+                    .small()
+                    .color(egui::Color32::GRAY));
+            });
+    }
+}
+
+// Helper function to trigger update check
+#[cfg(target_os = "linux")]
+fn trigger_update_check() -> Result<(), String> {
+    use std::process::Command;
+    
+    // Create a background task that runs the update script
+    Command::new("sh")
+        .args(&["-c", "cd ~/Pixelsort && git fetch origin main && git status"])
+        .spawn()
+        .map_err(|e| format!("Failed to check for updates: {}", e))?;
+    
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn trigger_update_check() -> Result<(), String> {
+    use std::process::Command;
+    
+    Command::new("powershell")
+        .args(&["-Command", "cd C:\\Users\\joel\\Pixelsort; git fetch origin main; git status"])
+        .spawn()
+        .map_err(|e| format!("Failed to check for updates: {}", e))?;
+    
+    Ok(())
+}
+
+// Helper functions for shutdown/reboot
+#[cfg(target_os = "linux")]
+fn initiate_shutdown() -> Result<(), String> {
+    use std::process::Command;
+    
+    Command::new("sudo")
+        .args(&["shutdown", "-h", "now"])
+        .spawn()
+        .map_err(|e| format!("Failed to execute shutdown: {}", e))?;
+    
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn initiate_shutdown() -> Result<(), String> {
+    log::info!("Shutdown simulated on non-Linux");
+    Err("Shutdown not supported on this platform".to_string())
+}
+
+#[cfg(target_os = "linux")]
+fn initiate_reboot() -> Result<(), String> {
+    use std::process::Command;
+    
+    Command::new("sudo")
+        .args(&["reboot"])
+        .spawn()
+        .map_err(|e| format!("Failed to execute reboot: {}", e))?;
+    
+    Ok(())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn initiate_reboot() -> Result<(), String> {
+    log::info!("Reboot simulated on non-Linux");
+    Err("Reboot not supported on this platform".to_string())
 }
 
 // ============================================================================
