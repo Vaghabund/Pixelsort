@@ -195,10 +195,12 @@ impl eframe::App for PixelSorterApp {
             self.show_developer_menu = !self.show_developer_menu;
         }
         
-        // Hidden developer menu trigger (top-left corner, tap 5 times within 3 seconds)
+        // Hidden developer menu trigger (bottom-right corner, tap 5 times within 3 seconds)
+        // Moved from top-left to avoid covering power button
+        let screen_size = ctx.screen_rect().size();
         egui::Area::new("dev_menu_trigger")
-            .fixed_pos(egui::pos2(0.0, 0.0))
-            .order(egui::Order::Foreground)
+            .fixed_pos(egui::pos2(screen_size.x - 50.0, screen_size.y - 50.0))
+            .order(egui::Order::Background) // Behind other UI elements
             .show(ctx, |ui| {
                 let trigger_size = egui::vec2(50.0, 50.0);
                 let (_rect, response) = ui.allocate_exact_size(trigger_size, egui::Sense::click());
@@ -809,7 +811,7 @@ impl PixelSorterApp {
                 });
                 
                 ui.add_space(5.0);
-                ui.label(egui::RichText::new("Tip: Press ESC or 5-tap top-left corner to toggle this menu")
+                ui.label(egui::RichText::new("Tip: Press ESC or 5-tap bottom-right corner to toggle this menu")
                     .small()
                     .color(egui::Color32::GRAY));
             });
