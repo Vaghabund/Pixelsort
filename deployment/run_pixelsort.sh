@@ -39,8 +39,11 @@ if ping -c 1 -W 2 github.com &> /dev/null; then
             chmod +x "$APP_DIR/deployment/run_pixelsort.sh"
             chmod +x "$APP_DIR/deployment/setup_autostart.sh"
             
-            # Check if source code changed
-            if git diff --name-only "$LOCAL_BEFORE" "$REMOTE" | grep -q "^src/\|Cargo.toml"; then
+            # Get new HEAD after pull
+            LOCAL_AFTER=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+            
+            # Check if source code changed between before and after
+            if git diff --name-only "$LOCAL_BEFORE" "$LOCAL_AFTER" | grep -q "^src/\|Cargo.toml"; then
                 echo "Source code changed. Rebuilding..."
                 NEEDS_REBUILD=true
             else

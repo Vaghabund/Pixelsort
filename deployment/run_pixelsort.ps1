@@ -39,8 +39,11 @@ try {
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✓ Update successful!" -ForegroundColor Green
             
-            # Check if source code changed
-            $changedFiles = git diff --name-only $LOCAL_BEFORE $REMOTE
+            # Get new HEAD after pull
+            $LOCAL_AFTER = git rev-parse HEAD 2>$null
+            
+            # Check if source code changed between before and after
+            $changedFiles = git diff --name-only $LOCAL_BEFORE $LOCAL_AFTER
             if ($changedFiles -match "^src/|Cargo.toml") {
                 Write-Host "Source code changed. Will rebuild..." -ForegroundColor Yellow
                 $NEEDS_REBUILD = $true
