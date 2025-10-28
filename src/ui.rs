@@ -605,14 +605,20 @@ impl PixelSorterApp {
                 let center = button_rect.center();
                 let radius = button_size * 0.35;
                 
-                // Background circle
-                let bg_color = if response.hovered() {
-                    egui::Color32::from_rgba_unmultiplied(220, 50, 50, 200) // Red on hover
+                // Glassmorphism background
+                let bg_color = if response.is_pointer_button_down_on() {
+                    egui::Color32::from_rgba_unmultiplied(255, 80, 80, 200) // Bright red on press
+                } else if response.hovered() {
+                    egui::Color32::from_rgba_unmultiplied(220, 50, 50, 180) // Red on hover
                 } else {
-                    egui::Color32::from_rgba_unmultiplied(80, 80, 80, 180) // Grey normally
+                    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 38) // Glassmorphism rgba(255, 255, 255, 0.15)
                 };
                 
-                ui.painter().circle_filled(center, button_size * 0.45, bg_color);
+                // Apply scale transform on press
+                let scale = if response.is_pointer_button_down_on() { 0.95 } else { 1.0 };
+                let scaled_radius = button_size * 0.45 * scale;
+                
+                ui.painter().circle_filled(center, scaled_radius, bg_color);
                 
                 // Power symbol: partial circle (arc) + line
                 let stroke = egui::Stroke::new(3.0, egui::Color32::WHITE);
@@ -1418,7 +1424,8 @@ impl PixelSorterApp {
     
     /// Basic circular button with default styling
     fn circular_button(&self, ui: &mut egui::Ui, radius: f32, text: &str, id: &str) -> bool {
-        self.circular_button_styled(ui, radius, text, id, egui::Color32::from_rgba_unmultiplied(70, 70, 80, 180))
+        // Glassmorphism: rgba(255, 255, 255, 0.15) = white with 15% opacity
+        self.circular_button_styled(ui, radius, text, id, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 38))
     }
     
     /// Circular button with custom fill color
@@ -1431,38 +1438,36 @@ impl PixelSorterApp {
             let painter = ui.painter();
             let center = rect.center();
             
-            // Determine colors based on interaction state
-            let (fill_color, stroke_color) = if response.is_pointer_button_down_on() {
-                // Pressed state - darker
-                let r = base_fill.r().saturating_sub(30);
-                let g = base_fill.g().saturating_sub(30);
-                let b = base_fill.b().saturating_sub(30);
-                (egui::Color32::from_rgb(r, g, b), egui::Color32::from_rgb(120, 120, 130))
+            // Apply scale transform on press (CSS: transform: scale(0.95))
+            let scale = if response.is_pointer_button_down_on() { 0.95 } else { 1.0 };
+            let scaled_radius = radius * scale;
+            
+            // Determine colors based on interaction state (CSS glassmorphism)
+            let fill_color = if response.is_pointer_button_down_on() {
+                // Active/pressed state: rgba(255, 255, 255, 0.25)
+                egui::Color32::from_rgba_unmultiplied(255, 255, 255, 64)
             } else if response.hovered() {
-                // Hovered state - lighter
-                let r = base_fill.r().saturating_add(20);
-                let g = base_fill.g().saturating_add(20);
-                let b = base_fill.b().saturating_add(20);
-                (egui::Color32::from_rgb(r, g, b), egui::Color32::from_rgb(150, 150, 160))
+                // Hover state: slightly brighter than base
+                egui::Color32::from_rgba_unmultiplied(255, 255, 255, 50)
             } else {
-                // Normal state
-                (base_fill, egui::Color32::from_rgb(100, 100, 110))
+                // Normal state: rgba(255, 255, 255, 0.15)
+                base_fill
             };
             
-            // Draw shadow for depth
+            // Draw shadow for depth (CSS: box-shadow effect)
             painter.circle(
-                center + egui::vec2(3.0, 3.0),
-                radius,
-                egui::Color32::from_black_alpha(80),
+                center + egui::vec2(2.0, 4.0),
+                scaled_radius,
+                egui::Color32::from_black_alpha(60),
                 egui::Stroke::NONE,
             );
             
-            // Draw main circle
+            // Draw main circle with subtle border
             painter.circle(
                 center,
-                radius,
+                scaled_radius,
                 fill_color,
-                egui::Stroke::new(3.0, stroke_color),
+                egui::Stroke::new(1.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 30)),
             );
             
             // Draw text in center
@@ -1503,13 +1508,14 @@ fn vertical_slider(ui: &mut egui::Ui, value: &mut f32, range: std::ops::RangeInc
     if ui.is_rect_visible(rect) {
         let painter = ui.painter();
         
-        // Background rail (semi-transparent)
-        let rail_rect = rect.shrink2(egui::vec2(width * 0.3, 0.0));
+        // CSS: height: 60px, border-radius: 30px (fully rounded)
+        // Background rail with glassmorphism: rgba(255, 255, 255, 0.1)
+        let rail_rect = rect.shrink2(egui::vec2(width * 0.25, 0.0));
         painter.rect(
             rail_rect,
-            rail_rect.width() / 2.0,
-            egui::Color32::from_rgba_unmultiplied(40, 40, 45, 180),
-            egui::Stroke::new(2.0, egui::Color32::from_rgba_unmultiplied(80, 80, 90, 180)),
+            rail_rect.width() / 2.0,  // Fully rounded
+            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 26),  // 0.1 opacity
+            egui::Stroke::NONE,
         );
         
         // Calculate normalized position (inverted for vertical)
@@ -1528,7 +1534,7 @@ fn vertical_slider(ui: &mut egui::Ui, value: &mut f32, range: std::ops::RangeInc
             }
         }
         
-        // Filled portion (from bottom up)
+        // Filled portion (from bottom up) - subtle blue fill
         let filled_height = rect.height() * normalized;
         if filled_height > 0.0 {
             let filled_rect = egui::Rect::from_min_max(
@@ -1538,30 +1544,30 @@ fn vertical_slider(ui: &mut egui::Ui, value: &mut f32, range: std::ops::RangeInc
             painter.rect(
                 filled_rect,
                 rail_rect.width() / 2.0,
-                egui::Color32::from_rgba_unmultiplied(80, 120, 200, 200),
+                egui::Color32::from_rgba_unmultiplied(100, 150, 255, 120),
                 egui::Stroke::NONE,
             );
         }
         
-        // Knob/handle (larger for better touch)
+        // CSS: Knob/handle - 50px diameter, white with border and shadow
         let knob_y = rect.bottom() - rect.height() * normalized;
         let knob_center = egui::pos2(rect.center().x, knob_y);
-        let knob_radius = width * 0.8;  // Increased from 0.6 to 0.8 for bigger handle
+        let knob_radius = 25.0;  // 50px diameter = 25px radius
         
-        // Draw knob shadow (larger)
+        // CSS: box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3)
         painter.circle(
-            knob_center + egui::vec2(3.0, 3.0),
+            knob_center + egui::vec2(0.0, 2.0),
             knob_radius,
-            egui::Color32::from_black_alpha(80),
+            egui::Color32::from_black_alpha(77),  // 0.3 opacity
             egui::Stroke::NONE,
         );
         
-        // Draw knob (semi-transparent)
+        // CSS: background: rgba(255, 255, 255, 0.9), border: 4px solid rgba(255, 255, 255, 0.3)
         painter.circle(
             knob_center,
             knob_radius,
-            egui::Color32::from_rgba_unmultiplied(200, 200, 210, 200),
-            egui::Stroke::new(3.0, egui::Color32::from_rgba_unmultiplied(100, 100, 110, 200)),
+            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 230),  // 0.9 opacity
+            egui::Stroke::new(4.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 77)),  // 0.3 opacity
         );
         
         // Show value bubble when dragging (on top layer to avoid clipping)
@@ -1579,23 +1585,24 @@ fn vertical_slider(ui: &mut egui::Ui, value: &mut f32, range: std::ops::RangeInc
             let bubble_pos = egui::pos2(rect.left() - bubble_size.x - 12.0, knob_y - bubble_size.y / 2.0);
             let bubble_rect = egui::Rect::from_min_size(bubble_pos, bubble_size);
             
+            // Glassmorphism bubble
             layer_painter.rect(
                 bubble_rect,
                 6.0,
-                egui::Color32::from_rgb(50, 50, 55),
-                egui::Stroke::new(2.0, egui::Color32::from_rgb(120, 120, 130)),
+                egui::Color32::from_rgba_unmultiplied(0, 0, 0, 230),
+                egui::Stroke::new(1.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 50)),
             );
             
             let text_pos = bubble_rect.center() - galley.size() / 2.0;
             layer_painter.galley(text_pos, galley);
         }
         
-        // Label below slider (positioned well below to avoid interfering with handle)
+        // Label below slider
         let label_font = egui::FontId::proportional(14.0);
-        let label_galley = painter.layout_no_wrap(label.to_string(), label_font, egui::Color32::WHITE);
+        let label_galley = painter.layout_no_wrap(label.to_string(), label_font, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 204));  // 0.8 opacity
         let label_pos = egui::pos2(
             rect.center().x - label_galley.size().x / 2.0,
-            rect.bottom() + 40.0, // Moved further down to 40.0 to clear bottom handle
+            rect.bottom() + 40.0,
         );
         
         // Label background for readability
