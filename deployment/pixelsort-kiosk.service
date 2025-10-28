@@ -1,5 +1,5 @@
 [Unit]
-Description=Raspberry Pi Pixel Sorter (Auto-updating Kiosk Mode)
+Description=Harpy Pixel Sorter (Auto-updating Kiosk Mode)
 After=graphical.target network-online.target
 Wants=network-online.target
 
@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 User=pixelsort
 WorkingDirectory=/home/pixelsort/Pixelsort
+ExecStartPre=/bin/chmod +x /home/pixelsort/Pixelsort/deployment/run_pixelsort.sh
 ExecStart=/home/pixelsort/Pixelsort/deployment/run_pixelsort.sh
 Restart=on-failure
 RestartSec=10
