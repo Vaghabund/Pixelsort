@@ -6,19 +6,15 @@ impl PixelSorterApp {
         if let (Some(ref original), Some(crop_rect)) = (&self.original_image, self.crop_rect) {
             self.is_processing = true;
 
-            // Get screen and image dimensions for coordinate conversion
-            let screen_rect = ctx.screen_rect();
+            // The crop_rect is already in image pixel coordinates (set in render_crop_overlay)
+            // No need for coordinate conversion - just clamp to image bounds
             let image_size = original.dimensions();
 
-            // Calculate scaling factors (image fills screen)
-            let scale_x = image_size.0 as f32 / screen_rect.width();
-            let scale_y = image_size.1 as f32 / screen_rect.height();
-
-            // Convert crop rectangle screen coordinates to image coordinates
-            let crop_min_x = (crop_rect.min.x * scale_x).max(0.0).min(image_size.0 as f32) as u32;
-            let crop_min_y = (crop_rect.min.y * scale_y).max(0.0).min(image_size.1 as f32) as u32;
-            let crop_max_x = (crop_rect.max.x * scale_x).max(0.0).min(image_size.0 as f32) as u32;
-            let crop_max_y = (crop_rect.max.y * scale_y).max(0.0).min(image_size.1 as f32) as u32;
+            // Clamp crop coordinates to image bounds
+            let crop_min_x = (crop_rect.min.x.max(0.0).min(image_size.0 as f32)) as u32;
+            let crop_min_y = (crop_rect.min.y.max(0.0).min(image_size.1 as f32)) as u32;
+            let crop_max_x = (crop_rect.max.x.max(0.0).min(image_size.0 as f32)) as u32;
+            let crop_max_y = (crop_rect.max.y.max(0.0).min(image_size.1 as f32)) as u32;
 
             // Ensure valid crop dimensions
             let crop_width = crop_max_x.saturating_sub(crop_min_x);

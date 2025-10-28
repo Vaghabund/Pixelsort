@@ -901,20 +901,17 @@ impl PixelSorterApp {
     }
 
     fn render_input_viewport(&mut self, ui: &mut egui::Ui, rect: egui::Rect) {
-        // Draw dark grey background
+        // Draw black background
         ui.painter().rect_filled(
             rect,
             0.0,
-            egui::Color32::from_rgb(40, 40, 40), // Dark grey
+            egui::Color32::BLACK,
         );
 
         if let Some(texture) = &self.camera_texture {
-            let image_size = texture.size_vec2();
-            let display_size = fit_image_in_rect(image_size, rect.size());
-            let centered_rect = center_rect_in_rect(display_size, rect);
-            
-            ui.allocate_ui_at_rect(centered_rect, |ui| {
-                ui.add(egui::Image::new(texture).fit_to_exact_size(display_size));
+            // Fill entire screen with camera feed
+            ui.allocate_ui_at_rect(rect, |ui| {
+                ui.add(egui::Image::new(texture).fit_to_exact_size(rect.size()));
             });
         } else {
             ui.allocate_ui_at_rect(rect, |ui| {
@@ -926,11 +923,11 @@ impl PixelSorterApp {
     }
 
     fn render_edit_viewport(&mut self, ui: &mut egui::Ui, rect: egui::Rect) {
-        // Draw dark grey background
+        // Draw black background
         ui.painter().rect_filled(
             rect,
             0.0,
-            egui::Color32::from_rgb(40, 40, 40), // Dark grey
+            egui::Color32::BLACK,
         );
 
         if let Some(texture) = &self.processed_texture {
@@ -951,11 +948,11 @@ impl PixelSorterApp {
     }
 
     fn render_crop_viewport(&mut self, ui: &mut egui::Ui, rect: egui::Rect, ctx: &egui::Context) {
-        // Draw dark grey background
+        // Draw black background
         ui.painter().rect_filled(
             rect,
             0.0,
-            egui::Color32::from_rgb(40, 40, 40), // Dark grey
+            egui::Color32::BLACK,
         );
 
         if let Some(texture) = &self.processed_texture {
@@ -1388,7 +1385,7 @@ impl PixelSorterApp {
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     vertical_slider(ui, &mut threshold, 
-                        0.0..=120.0, slider_width, full_slider_height, "Threshold")
+                        0.0..=125.0, slider_width, full_slider_height, "Threshold")
                 }).inner
             }).inner;
         
@@ -1549,10 +1546,10 @@ fn vertical_slider(ui: &mut egui::Ui, value: &mut f32, range: std::ops::RangeInc
             );
         }
         
-        // CSS: Knob/handle - 50px diameter, white with border and shadow
+        // CSS: Knob/handle - larger size for better touch
         let knob_y = rect.bottom() - rect.height() * normalized;
         let knob_center = egui::pos2(rect.center().x, knob_y);
-        let knob_radius = 25.0;  // 50px diameter = 25px radius
+        let knob_radius = 30.0;  // Increased from 25 to 30 (60px diameter)
         
         // CSS: box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3)
         painter.circle(
@@ -1597,8 +1594,8 @@ fn vertical_slider(ui: &mut egui::Ui, value: &mut f32, range: std::ops::RangeInc
             layer_painter.galley(text_pos, galley);
         }
         
-        // Label below slider
-        let label_font = egui::FontId::proportional(14.0);
+        // Label below slider - increased font size
+        let label_font = egui::FontId::proportional(18.0);  // Increased from 14 to 18
         let label_galley = painter.layout_no_wrap(label.to_string(), label_font, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 204));  // 0.8 opacity
         let label_pos = egui::pos2(
             rect.center().x - label_galley.size().x / 2.0,
