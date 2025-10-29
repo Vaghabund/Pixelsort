@@ -10,6 +10,9 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Harpy Pixel Sorter - Starting..." -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
+# Ensure git ignores file permission changes
+git config core.fileMode false 2>$null
+
 # Save current HEAD for comparison
 $LOCAL_BEFORE = git rev-parse HEAD 2>$null
 if (-not $LOCAL_BEFORE) { $LOCAL_BEFORE = "unknown" }

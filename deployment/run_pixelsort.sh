@@ -11,6 +11,9 @@ echo "=========================================="
 echo "Harpy Pixel Sorter - Starting..."
 echo "=========================================="
 
+# Ensure git ignores file permission changes (chmod +x)
+git config core.fileMode false 2>/dev/null
+
 # Check for internet connectivity
 if ping -c 1 -W 2 github.com &> /dev/null; then
     echo "Internet connected. Checking for updates..."
