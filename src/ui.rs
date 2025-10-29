@@ -249,7 +249,10 @@ impl eframe::App for PixelSorterApp {
             i.pointer.any_pressed() || 
             i.pointer.any_down() || 
             i.pointer.is_moving() ||
-            !i.events.is_empty()
+            !i.events.is_empty() ||
+            i.key_pressed(egui::Key::Space) ||
+            i.key_pressed(egui::Key::Escape) ||
+            i.key_pressed(egui::Key::Enter)
         });
         
         if has_interaction {
@@ -413,6 +416,9 @@ impl PixelSorterApp {
             .frame(egui::Frame::none())
             .show(ctx, |ui| {
                 let screen_rect = ui.max_rect();
+                
+                // Add invisible full-screen button to capture all touches
+                let _response = ui.allocate_rect(screen_rect, egui::Sense::click());
                 
                 // Dark background (very dark grey for OLED power saving)
                 ui.painter().rect_filled(
