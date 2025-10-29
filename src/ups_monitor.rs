@@ -80,6 +80,20 @@ pub fn start_monitoring(config: UpsConfig) -> Arc<AtomicBool> {
         log::info!("UPS monitoring started (I2C bus {}, address 0x{:02X})", 
                    config.i2c_bus, config.i2c_address);
         
+        // Do an immediate check first to populate battery status
+        if let Ok((voltage, is_charging)) = check_battery_voltage(&config) {
+            let percentage = voltage_to_percentage(voltage, config.voltage_threshold);
+            if let Ok(mut status) = BATTERY_STATUS.lock() {
+                status.voltage = voltage;
+                status.percentage = percentage;
+                status.is_charging = is_charging;
+                status.is_available = true;
+            }
+            log::info!("Initial battery status: {:.2}V ({:.0}%) {}", 
+                      voltage, percentage, 
+                      if is_charging { "charging" } else { "discharging" });
+        }
+        
         loop {
             sleep(Duration::from_secs(config.check_interval_secs)).await;
             
