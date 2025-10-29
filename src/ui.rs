@@ -817,9 +817,11 @@ impl PixelSorterApp {
                 });
                 
                 ui.add_space(10.0); // Doubled from 5.0
-                ui.label(egui::RichText::new("Tip: Press ESC or 5-tap bottom-right corner to toggle this menu").size(18.0)) // Added size double
-                    .small()
-                    .color(egui::Color32::GRAY));
+                ui.label(
+                    egui::RichText::new("Tip: Press ESC or 5-tap bottom-right corner to toggle this menu")
+                        .size(18.0)
+                        .color(egui::Color32::GRAY)
+                );
             });
     }
 }
