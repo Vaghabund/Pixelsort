@@ -1,7 +1,7 @@
 #!/bin/bash
-# Install Harpy desktop shortcuts
+# Install Harpy desktop shortcut
 
-echo "Installing Harpy desktop shortcuts..."
+echo "Installing Harpy desktop shortcut..."
 
 DESKTOP_DIR="/home/pixelsort/Desktop"
 DEPLOY_DIR="/home/pixelsort/Pixelsort/deployment"
@@ -17,17 +17,7 @@ cp "$HARPY_SOURCE" "$HARPY_FILE"
 chmod +x "$HARPY_FILE"
 gio set "$HARPY_FILE" metadata::trusted true 2>/dev/null || true
 
-# Install restart shortcut
-RESTART_FILE="$DESKTOP_DIR/Harpy-Restart.desktop"
-RESTART_SOURCE="$DEPLOY_DIR/Harpy-Restart.desktop"
-
-cp "$RESTART_SOURCE" "$RESTART_FILE"
-chmod +x "$RESTART_FILE"
-gio set "$RESTART_FILE" metadata::trusted true 2>/dev/null || true
-
-echo "✓ Desktop shortcuts installed!"
+echo "✓ Harpy Pixel Sorter desktop shortcut installed!"
 echo ""
-echo "Desktop icons:"
-echo "  • Harpy Pixel Sorter - Launch the app"
-echo "  • Harpy-Restart - Restart the app service"
+echo "Double-click the 'Harpy Pixel Sorter' icon on your desktop to launch the app."
 echo ""

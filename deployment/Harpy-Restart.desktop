@@ -1,9 +1,0 @@
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Harpy Pixel Sorter (Restart)
-Comment=Restart the Harpy Pixel Sorter app
-Exec=sudo systemctl restart pixelsort-kiosk
-Icon=/home/pixelsort/Pixelsort/assets/Harpy_ICON.png
-Terminal=false
-Categories=Utility;Graphics;
