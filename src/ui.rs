@@ -760,7 +760,7 @@ impl PixelSorterApp {
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
-                    ui.set_min_width(300.0);
+                    ui.set_min_width(250.0);
                     
                     ui.vertical_centered(|ui| {
                         // Shutdown button
@@ -865,19 +865,20 @@ impl PixelSorterApp {
                             ui.add_space(5.0);
                             
                             // Restart & Update button
-                            if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Restart & Update").size(24.0))).clicked() {
-                                log::info!("Restart & Update requested");
+                            if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Pull & Restart").size(24.0))).clicked() {
+                                log::info!("Pull & Restart requested");
                                 self.export_message = Some("🔄 Pulling updates and restarting...".to_string());
                                 self.export_message_time = Some(Instant::now());
                                 self.show_developer_menu = false;
                                 
-                                // Trigger update & restart
+                                // Pull updates and restart service (systemd will use new binary)
                                 #[cfg(target_os = "linux")]
                                 {
                                     use std::process::Command;
-                                    // Pull, rebuild in background, then restart service
+                                    // Pull updates, then restart service
+                                    // Note: You should build manually or via update script before pulling
                                     let _ = Command::new("sh")
-                                        .args(&["-c", "cd ~/Pixelsort && git pull origin main && source ~/.cargo/env && cargo build --release && sudo systemctl restart pixelsort-kiosk"])
+                                        .args(&["-c", "cd ~/Pixelsort && git pull origin main && sudo systemctl restart pixelsort-kiosk"])
                                         .spawn();
                                 }
                             }
@@ -891,7 +892,7 @@ impl PixelSorterApp {
                                 self.check_for_updates_background();
                                 self.export_message = Some("✓ Checking for updates...".to_string());
                                 self.export_message_time = Some(Instant::now());
-                                self.show_developer_menu = false;
+                                // Don't close menu - let user see the result
                             }
                         }
                         
