@@ -41,7 +41,7 @@ impl PixelSorterApp {
     }
 
     pub fn render_battery_indicator(&mut self, ctx: &egui::Context, _screen_rect: egui::Rect) {
-        let battery_status = crate::ups_monitor::get_battery_status();
+        let battery_status = crate::hardware::get_battery_status();
 
         // Only show if battery is available
         if !battery_status.is_available {

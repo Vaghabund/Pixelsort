@@ -3,9 +3,9 @@ use std::time::Instant;
 use eframe::egui;
 use tokio::sync::RwLock;
 
-use crate::update_manager::UpdateManager;
-use crate::pixel_sorter::{PixelSorter, SortingAlgorithm, SortingParameters};
-use crate::camera_controller::CameraController;
+use crate::system::UpdateManager;
+use crate::processing::{PixelSorter, SortingAlgorithm, SortingParameters};
+use crate::hardware::CameraController;
 
 // Module declarations
 mod state;
@@ -174,7 +174,7 @@ impl PixelSorterApp {
 impl eframe::App for PixelSorterApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Check if UPS requested shutdown
-        if crate::ups_monitor::is_shutdown_requested() {
+        if crate::hardware::is_shutdown_requested() {
             log::warn!("UPS shutdown requested - closing application");
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;

@@ -1,7 +1,7 @@
 use crate::PixelSorterApp;
 use crate::ui::state::Phase;
 use crate::ui::widgets::{vertical_slider, circular_button_styled};
-use crate::pixel_sorter::SortingAlgorithm;
+use crate::processing::SortingAlgorithm;
 use eframe::egui;
 use std::time::Instant;
 

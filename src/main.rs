@@ -4,23 +4,16 @@ use log::info;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-mod pixel_sorter;
-mod ui;
-mod camera_controller;
-mod ups_monitor;
-mod update_manager;
-mod system_control;
-
-mod crop;
-mod texture;
-mod image_ops;
+// Domain modules
+mod hardware;
+mod processing;
+mod system;
 mod session;
-mod camera;
+mod ui;
 
-use crate::pixel_sorter::PixelSorter;
+use crate::processing::PixelSorter;
 use crate::ui::PixelSorterApp;
-use crate::camera_controller::CameraController;
-use crate::ups_monitor::UpsConfig;
+use crate::hardware::{CameraController, UpsConfig};
 
 #[tokio::main]
 #[allow(clippy::arc_with_non_send_sync)]
@@ -36,7 +29,7 @@ async fn main() -> Result<()> {
     let ups_config = load_ups_config();
     
     // Start UPS monitoring (runs in background)
-    let _shutdown_flag = ups_monitor::start_monitoring(ups_config);
+    let _shutdown_flag = hardware::start_monitoring(ups_config);
     
     // Initialize components
     let pixel_sorter = Arc::new(PixelSorter::new());

@@ -1,5 +1,5 @@
 use crate::PixelSorterApp;
-use crate::system_control::SystemControl;
+use crate::system::SystemControl;
 use eframe::egui;
 use std::time::Instant;
 
@@ -147,7 +147,7 @@ impl PixelSorterApp {
                         ui.separator();
 
                         // Battery status
-                        let battery = crate::ups_monitor::get_battery_status();
+                        let battery = crate::hardware::get_battery_status();
                         if battery.is_available {
                             let battery_text = if battery.is_charging {
                                 format!("🔋 Battery: {:.0}% ({:.1}V) ⚡ Charging",

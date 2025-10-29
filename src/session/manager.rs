@@ -2,7 +2,7 @@ use crate::PixelSorterApp;
 use eframe::egui;
 use std::path::PathBuf;
 use chrono::{DateTime, Local};
-use crate::pixel_sorter::SortingAlgorithm;
+use crate::processing::SortingAlgorithm;
 
 impl PixelSorterApp {
     fn auto_save_image(&mut self, image: &image::RgbImage, algorithm: &SortingAlgorithm) -> Result<PathBuf, Box<dyn std::error::Error>> {
