@@ -149,7 +149,7 @@ impl PixelSorterApp {
     }
 
     fn usb_present(&self) -> bool {
-        let usb_paths = ["/media/pi", "/media/usb", "/media", "/mnt/usb", "/mnt"];
+        let usb_paths = ["/media/pixelsort", "/media/pi", "/media/usb", "/media", "/mnt/usb", "/mnt"];
         for base_path in &usb_paths {
             if let Ok(entries) = std::fs::read_dir(base_path) {
                 for entry in entries.flatten() {

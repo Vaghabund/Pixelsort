@@ -37,6 +37,7 @@ impl PixelSorterApp {
     pub fn copy_to_usb(&self) -> Result<(), Box<dyn std::error::Error>> {
         // Find USB drives (looking for common mount points on Linux/Pi)
         let usb_paths = [
+            "/media/pixelsort", // Current user
             "/media/pi", // Pi OS default
             "/media/usb", // Common mount point
             "/media", // Generic Linux
