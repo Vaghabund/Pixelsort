@@ -215,19 +215,21 @@ fn check_battery_voltage(config: &UpsConfig) -> Result<(f32, bool), String> {
     if let Ok(mut dev) = LinuxI2CDevice::new(&i2c_path, config.i2c_address as u16) {
         // INA219-style voltage reading (common for 0x42 UPS HATs)
         // Register 0x02: Bus Voltage Register
-        let mut buf = [0u8; 2];
-        if dev.smbus_read_i2c_block_data(0x02, &mut buf).is_ok() {
-            // Combine bytes (big-endian)
-            let raw_value = ((buf[0] as u16) << 8) | (buf[1] as u16);
-            
-            // INA219: Voltage = (raw >> 3) * 4mV
-            let voltage = ((raw_value >> 3) as f32) * 0.004;
-            
-            if voltage > 0.0 && voltage < 20.0 {  // Sanity check
-                // Estimate charging based on voltage
-                // 2S Li-ion: > 8.0V usually means charging or full
-                let estimated_charging = voltage > 8.0;
-                return Ok((voltage, is_charging || estimated_charging));
+        // Read 2 bytes from register 0x02
+        if let Ok(buf) = dev.smbus_read_i2c_block_data(0x02, 2) {
+            if buf.len() >= 2 {
+                // Combine bytes (big-endian)
+                let raw_value = ((buf[0] as u16) << 8) | (buf[1] as u16);
+                
+                // INA219: Voltage = (raw >> 3) * 4mV
+                let voltage = ((raw_value >> 3) as f32) * 0.004;
+                
+                if voltage > 0.0 && voltage < 20.0 {  // Sanity check
+                    // Estimate charging based on voltage
+                    // 2S Li-ion: > 8.0V usually means charging or full
+                    let estimated_charging = voltage > 8.0;
+                    return Ok((voltage, is_charging || estimated_charging));
+                }
             }
         }
     }
