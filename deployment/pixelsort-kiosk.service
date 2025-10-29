@@ -1,7 +1,7 @@
 [Unit]
 Description=Harpy Pixel Sorter (Auto-updating Kiosk Mode)
-After=graphical.target network-online.target
-Wants=network-online.target
+After=graphical.target network.target
+Wants=network.target
 
 [Service]
 Type=simple
