@@ -8,6 +8,8 @@ mod pixel_sorter;
 mod ui;
 mod camera_controller;
 mod ups_monitor;
+mod update_manager;
+mod system_control;
 
 mod crop;
 mod texture;

@@ -3,6 +3,9 @@ use std::time::Instant;
 use eframe::egui;
 use tokio::sync::RwLock;
 
+use crate::update_manager::UpdateManager;
+use crate::system_control::SystemControl;
+
 use crate::pixel_sorter::{PixelSorter, SortingAlgorithm, SortingParameters};
 use crate::camera_controller::CameraController;
 
@@ -77,7 +80,7 @@ pub struct PixelSorterApp {
     pub sleep_logo: Option<egui::TextureHandle>,
     
     // Update checking
-    pub update_available: bool,
+    pub update_manager: UpdateManager,
     pub update_check_time: Option<Instant>,
     pub startup_check_done: bool,
     
@@ -151,7 +154,7 @@ impl PixelSorterApp {
             wake_start_time: None,
             last_interaction_time: Instant::now(),
             sleep_logo: None,
-            update_available: false,
+            update_manager: UpdateManager::new("/home/pixelsort/Pixelsort".to_string()),
             update_check_time: None,
             startup_check_done: false,
             show_shutdown_menu: false,
@@ -260,7 +263,7 @@ impl eframe::App for PixelSorterApp {
             } else if let Some(start_time) = self.update_check_time {
                 if start_time.elapsed().as_secs() >= 30 {
                     // Do the one-time startup check
-                    self.check_for_updates_background();
+                    let _ = self.update_manager.check_for_updates();
                     self.startup_check_done = true;
                 }
             }
@@ -766,7 +769,7 @@ impl PixelSorterApp {
                         // Shutdown button
                         if ui.add_sized([250.0, 50.0], egui::Button::new("🔌 Shutdown")).clicked() {
                             log::info!("Shutdown requested by user");
-                            if let Err(e) = initiate_shutdown() {
+                            if let Err(e) = SystemControl::shutdown() {
                                 log::error!("Failed to shutdown: {}", e);
                                 self.export_message = Some(format!("✗ Shutdown failed: {}", e));
                                 self.export_message_time = Some(Instant::now());
@@ -779,7 +782,7 @@ impl PixelSorterApp {
                         // Reboot button
                         if ui.add_sized([250.0, 50.0], egui::Button::new("🔄 Reboot")).clicked() {
                             log::info!("Reboot requested by user");
-                            if let Err(e) = initiate_reboot() {
+                            if let Err(e) = SystemControl::reboot() {
                                 log::error!("Failed to reboot: {}", e);
                                 self.export_message = Some(format!("✗ Reboot failed: {}", e));
                                 self.export_message_time = Some(Instant::now());
@@ -860,7 +863,7 @@ impl PixelSorterApp {
                         ui.separator();
                         
                         // Update status
-                        if self.update_available {
+                        if self.update_manager.update_available {
                             ui.label(egui::RichText::new("🆕 Update Available!").color(egui::Color32::from_rgb(100, 220, 100)).size(22.0));
                             ui.add_space(5.0);
                             
@@ -871,16 +874,8 @@ impl PixelSorterApp {
                                 self.export_message_time = Some(Instant::now());
                                 self.show_developer_menu = false;
                                 
-                                // Pull updates and restart service (systemd will use new binary)
-                                #[cfg(target_os = "linux")]
-                                {
-                                    use std::process::Command;
-                                    // Pull updates, then restart service
-                                    // Note: You should build manually or via update script before pulling
-                                    let _ = Command::new("sh")
-                                        .args(&["-c", "cd ~/Pixelsort && git pull origin main && sudo systemctl restart pixelsort-kiosk"])
-                                        .spawn();
-                                }
+                                // Pull updates and restart service using update_manager
+                                let _ = self.update_manager.pull_and_restart_service("pixelsort-kiosk");
                             }
                         } else {
                             ui.label(egui::RichText::new("✅ App is up to date").color(egui::Color32::GRAY).size(20.0));
@@ -889,7 +884,9 @@ impl PixelSorterApp {
                             // Manual check button
                             if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Check Now").size(24.0))).clicked() {
                                 log::info!("Manual update check requested");
-                                self.check_for_updates_background();
+                                if let Ok(_) = self.update_manager.check_for_updates() {
+                                    self.update_check_time = Some(Instant::now());
+                                }
                                 self.export_message = Some("✓ Checking for updates...".to_string());
                                 self.export_message_time = Some(Instant::now());
                                 // Don't close menu - let user see the result
@@ -944,77 +941,6 @@ impl PixelSorterApp {
                 );
             });
     }
-    
-    fn check_for_updates_background(&mut self) {
-        #[cfg(target_os = "linux")]
-        {
-            use std::process::Command;
-            
-            log::info!("Checking for updates...");
-            
-            // Run git fetch and compare local vs remote
-            if let Ok(output) = Command::new("sh")
-                .args(&["-c", "cd ~/Pixelsort && git fetch origin main 2>/dev/null && git rev-parse HEAD && git rev-parse origin/main"])
-                .output()
-            {
-                if output.status.success() {
-                    let result = String::from_utf8_lossy(&output.stdout);
-                    let lines: Vec<&str> = result.lines().collect();
-                    if lines.len() == 2 {
-                        let local = lines[0].trim();
-                        let remote = lines[1].trim();
-                        
-                        self.update_check_time = Some(Instant::now());
-                        
-                        if local != remote {
-                            log::info!("Update available: {} -> {}", &local[..7], &remote[..7]);
-                            self.update_available = true;
-                        } else {
-                            log::info!("App is up to date: {}", &local[..7]);
-                            self.update_available = false;
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Helper functions for shutdown/reboot
-#[cfg(target_os = "linux")]
-fn initiate_shutdown() -> Result<(), String> {
-    use std::process::Command;
-    
-    Command::new("sudo")
-        .args(&["shutdown", "-h", "now"])
-        .spawn()
-        .map_err(|e| format!("Failed to execute shutdown: {}", e))?;
-    
-    Ok(())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn initiate_shutdown() -> Result<(), String> {
-    log::info!("Shutdown simulated on non-Linux");
-    Err("Shutdown not supported on this platform".to_string())
-}
-
-#[cfg(target_os = "linux")]
-fn initiate_reboot() -> Result<(), String> {
-    use std::process::Command;
-    
-    Command::new("sudo")
-        .args(&["reboot"])
-        .spawn()
-        .map_err(|e| format!("Failed to execute reboot: {}", e))?;
-    
-    Ok(())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn initiate_reboot() -> Result<(), String> {
-    log::info!("Reboot simulated on non-Linux");
-    Err("Reboot not supported on this platform".to_string())
 }
 
 // ============================================================================
