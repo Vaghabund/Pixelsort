@@ -79,6 +79,7 @@ pub struct PixelSorterApp {
     // Update checking
     pub update_available: bool,
     pub update_check_time: Option<Instant>,
+    pub startup_check_done: bool,
     
     // Shutdown menu
     pub show_shutdown_menu: bool,
@@ -152,6 +153,7 @@ impl PixelSorterApp {
             sleep_logo: None,
             update_available: false,
             update_check_time: None,
+            startup_check_done: false,
             show_shutdown_menu: false,
             show_developer_menu: false,
             tint_enabled: false,
@@ -250,15 +252,17 @@ impl eframe::App for PixelSorterApp {
             }
         }
         
-        // Background update check (every 5 minutes)
-        if self.update_check_time.is_none() {
-            // First check after 30 seconds
-            self.update_check_time = Some(Instant::now());
-        } else if let Some(last_check) = self.update_check_time {
-            if last_check.elapsed().as_secs() >= 300 && !self.update_available {
-                // Check for updates every 5 minutes
-                self.check_for_updates_background();
+        // Background update check (only once at startup after 30 seconds)
+        if !self.startup_check_done {
+            if self.update_check_time.is_none() {
+                // Schedule first check after 30 seconds
                 self.update_check_time = Some(Instant::now());
+            } else if let Some(start_time) = self.update_check_time {
+                if start_time.elapsed().as_secs() >= 30 {
+                    // Do the one-time startup check
+                    self.check_for_updates_background();
+                    self.startup_check_done = true;
+                }
             }
         }
         
