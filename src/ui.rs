@@ -76,6 +76,10 @@ pub struct PixelSorterApp {
     pub last_interaction_time: Instant,
     pub sleep_logo: Option<egui::TextureHandle>,
     
+    // Update checking
+    pub update_available: bool,
+    pub update_check_time: Option<Instant>,
+    
     // Shutdown menu
     pub show_shutdown_menu: bool,
     
@@ -146,6 +150,8 @@ impl PixelSorterApp {
             wake_start_time: None,
             last_interaction_time: Instant::now(),
             sleep_logo: None,
+            update_available: false,
+            update_check_time: None,
             show_shutdown_menu: false,
             show_developer_menu: false,
             tint_enabled: false,
@@ -241,6 +247,18 @@ impl eframe::App for PixelSorterApp {
                     ctx.request_repaint(); // Keep repainting for fade effect
                     return;
                 }
+            }
+        }
+        
+        // Background update check (every 5 minutes)
+        if self.update_check_time.is_none() {
+            // First check after 30 seconds
+            self.update_check_time = Some(Instant::now());
+        } else if let Some(last_check) = self.update_check_time {
+            if last_check.elapsed().as_secs() >= 300 && !self.update_available {
+                // Check for updates every 5 minutes
+                self.check_for_updates_background();
+                self.update_check_time = Some(Instant::now());
             }
         }
         
@@ -740,9 +758,6 @@ impl PixelSorterApp {
                 .show(ctx, |ui| {
                     ui.set_min_width(300.0);
                     
-                    ui.heading("Power Options");
-                    ui.add_space(10.0);
-                    
                     ui.vertical_centered(|ui| {
                         // Shutdown button
                         if ui.add_sized([250.0, 50.0], egui::Button::new("🔌 Shutdown")).clicked() {
@@ -837,21 +852,43 @@ impl PixelSorterApp {
                     
                     // Actions section
                     ui.group(|ui| {
-                        ui.label(egui::RichText::new("Actions").strong().size(24.0)); // Added size double
+                        ui.label(egui::RichText::new("Actions").strong().size(24.0));
                         ui.separator();
                         
-                        // Force update button
-                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Check for Updates").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
-                            log::info!("Manual update check requested");
-                            if let Err(e) = trigger_update_check() {
-                                log::error!("Update check failed: {}", e);
-                                self.export_message = Some(format!("✗ Update check failed: {}", e));
+                        // Update status
+                        if self.update_available {
+                            ui.label(egui::RichText::new("🆕 Update Available!").color(egui::Color32::from_rgb(100, 220, 100)).size(22.0));
+                            ui.add_space(5.0);
+                            
+                            // Restart & Update button
+                            if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Restart & Update").size(24.0))).clicked() {
+                                log::info!("Restart & Update requested");
+                                self.export_message = Some("🔄 Pulling updates and restarting...".to_string());
                                 self.export_message_time = Some(Instant::now());
-                            } else {
-                                self.export_message = Some("✓ Update check initiated (check logs)".to_string());
-                                self.export_message_time = Some(Instant::now());
+                                self.show_developer_menu = false;
+                                
+                                // Trigger update & restart
+                                #[cfg(target_os = "linux")]
+                                {
+                                    use std::process::Command;
+                                    // Pull, rebuild in background, then restart service
+                                    let _ = Command::new("sh")
+                                        .args(&["-c", "cd ~/Pixelsort && git pull origin main && source ~/.cargo/env && cargo build --release && sudo systemctl restart pixelsort-kiosk"])
+                                        .spawn();
+                                }
                             }
-                            self.show_developer_menu = false;
+                        } else {
+                            ui.label(egui::RichText::new("✅ App is up to date").color(egui::Color32::GRAY).size(20.0));
+                            ui.add_space(5.0);
+                            
+                            // Manual check button
+                            if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Check Now").size(24.0))).clicked() {
+                                log::info!("Manual update check requested");
+                                self.check_for_updates_background();
+                                self.export_message = Some("✓ Checking for updates...".to_string());
+                                self.export_message_time = Some(Instant::now());
+                                self.show_developer_menu = false;
+                            }
                         }
                         
                         ui.add_space(10.0); // Doubled from 5.0
@@ -902,32 +939,32 @@ impl PixelSorterApp {
                 );
             });
     }
-}
-
-// Helper function to trigger update check
-#[cfg(target_os = "linux")]
-fn trigger_update_check() -> Result<(), String> {
-    use std::process::Command;
     
-    // Create a background task that runs the update script
-    Command::new("sh")
-        .args(&["-c", "cd ~/Pixelsort && git fetch origin main && git status"])
-        .spawn()
-        .map_err(|e| format!("Failed to check for updates: {}", e))?;
-    
-    Ok(())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn trigger_update_check() -> Result<(), String> {
-    use std::process::Command;
-    
-    Command::new("powershell")
-        .args(&["-Command", "cd C:\\Users\\joel\\Pixelsort; git fetch origin main; git status"])
-        .spawn()
-        .map_err(|e| format!("Failed to check for updates: {}", e))?;
-    
-    Ok(())
+    fn check_for_updates_background(&mut self) {
+        #[cfg(target_os = "linux")]
+        {
+            use std::process::Command;
+            
+            // Run git fetch and compare local vs remote
+            if let Ok(output) = Command::new("sh")
+                .args(&["-c", "cd ~/Pixelsort && git fetch origin main 2>/dev/null && git rev-parse HEAD && git rev-parse origin/main"])
+                .output()
+            {
+                if output.status.success() {
+                    let result = String::from_utf8_lossy(&output.stdout);
+                    let lines: Vec<&str> = result.lines().collect();
+                    if lines.len() == 2 {
+                        let local = lines[0].trim();
+                        let remote = lines[1].trim();
+                        if local != remote {
+                            log::info!("Update available: {} -> {}", &local[..7], &remote[..7]);
+                            self.update_available = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Helper functions for shutdown/reboot
