@@ -28,6 +28,9 @@ chrono = "0.4"
 # Lazy static for global state
 lazy_static = "1.4"
 
+# I2C communication for UPS battery monitoring (Linux only)
+i2cdev = "0.6"
+
 # Logging
 log = "0.4"
 env_logger = "0.10"

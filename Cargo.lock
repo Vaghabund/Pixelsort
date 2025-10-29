@@ -1510,6 +1510,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "135b12329e5e3ce057a9f972339ea52bc954fe1e9358ef27f95e89716fbc5424"
 
 [[package]]
+name = "i2cdev"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a01f563561b53e2def844167c92984da13779a53ca409e948a03400633cb8228"
+dependencies = [
+ "bitflags 2.9.4",
+ "byteorder",
+ "libc",
+ "nix 0.26.4",
+]
+
+[[package]]
 name = "iana-time-zone"
 version = "0.1.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2322,6 +2334,7 @@ dependencies = [
  "eframe",
  "egui",
  "env_logger",
+ "i2cdev",
  "image",
  "lazy_static",
  "log",

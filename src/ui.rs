@@ -71,6 +71,8 @@ pub struct PixelSorterApp {
     
     // Sleep mode (power saving after idle)
     pub is_sleeping: bool,
+    pub is_waking: bool,
+    pub wake_start_time: Option<Instant>,
     pub last_interaction_time: Instant,
     pub sleep_logo: Option<egui::TextureHandle>,
     
@@ -140,6 +142,8 @@ impl PixelSorterApp {
             exit_tap_count: 0,
             exit_tap_last_time: None,
             is_sleeping: false,
+            is_waking: false,
+            wake_start_time: None,
             last_interaction_time: Instant::now(),
             sleep_logo: None,
             show_shutdown_menu: false,
@@ -250,11 +254,25 @@ impl eframe::App for PixelSorterApp {
         
         if has_interaction {
             if self.is_sleeping {
-                // Wake up from sleep
+                // Wake up from sleep - show immediate feedback
                 self.is_sleeping = false;
+                self.is_waking = true;
+                self.wake_start_time = Some(Instant::now());
+                log::info!("Waking from sleep mode...");
             }
             // Reset idle timer on any interaction
             self.last_interaction_time = Instant::now();
+        }
+        
+        // Check if wake-up animation is complete (show for 1 second)
+        if self.is_waking {
+            if let Some(wake_start) = self.wake_start_time {
+                if wake_start.elapsed().as_secs() >= 1 {
+                    self.is_waking = false;
+                    self.wake_start_time = None;
+                    log::info!("Wake-up complete");
+                }
+            }
         }
         
         // Check if we should enter sleep mode (5 minutes = 300 seconds)
@@ -267,6 +285,13 @@ impl eframe::App for PixelSorterApp {
         if self.is_sleeping {
             self.render_sleep_screen(ctx);
             ctx.request_repaint(); // Keep checking for wake-up
+            return;
+        }
+        
+        // If waking, show wake-up screen
+        if self.is_waking {
+            self.render_waking_screen(ctx);
+            ctx.request_repaint();
             return;
         }
         
@@ -440,6 +465,53 @@ impl PixelSorterApp {
                     center.y + 160.0,
                 );
                 ui.painter().galley(hint_pos, hint_galley);
+            });
+    }
+
+    fn render_waking_screen(&mut self, ctx: &egui::Context) {
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none())
+            .show(ctx, |ui| {
+                let screen_rect = ui.max_rect();
+                
+                // Same dark background as sleep
+                ui.painter().rect_filled(
+                    screen_rect,
+                    0.0,
+                    egui::Color32::from_rgb(10, 10, 10),
+                );
+
+                let center = screen_rect.center();
+                
+                // Draw logo (full brightness for waking)
+                if let Some(logo_texture) = &self.sleep_logo {
+                    let logo_size = 200.0;
+                    let logo_rect = egui::Rect::from_center_size(
+                        egui::pos2(center.x, center.y - 40.0),
+                        egui::vec2(logo_size, logo_size),
+                    );
+                    
+                    // Full brightness logo
+                    let tint = egui::Color32::WHITE;
+                    ui.painter().image(
+                        logo_texture.id(),
+                        logo_rect,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        tint,
+                    );
+                }
+
+                // Draw "Waking up..." text
+                let text = "Waking up...";
+                let font_id = egui::FontId::proportional(48.0); // Larger font
+                let text_color = egui::Color32::WHITE; // Full brightness
+                let galley = ui.painter().layout_no_wrap(text.to_string(), font_id, text_color);
+                
+                let text_pos = egui::pos2(
+                    center.x - galley.size().x / 2.0,
+                    center.y + 100.0,
+                );
+                ui.painter().galley(text_pos, galley);
             });
     }
 
