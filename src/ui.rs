@@ -493,13 +493,13 @@ impl PixelSorterApp {
                         } else {
                             egui::Color32::from_rgb(180, 40, 40) // Red for error
                         })
-                        .rounding(8.0)
-                        .inner_margin(egui::Margin::symmetric(20.0, 15.0))
+                        .rounding(16.0) // Doubled from 8.0
+                        .inner_margin(egui::Margin::symmetric(40.0, 30.0)) // Doubled from (20.0, 15.0)
                         .show(ui, |ui| {
                             ui.label(
                                 egui::RichText::new(message)
                                     .color(egui::Color32::WHITE)
-                                    .size(20.0)
+                                    .size(40.0) // Doubled from 20.0
                             );
                         });
                 });
@@ -520,12 +520,12 @@ impl PixelSorterApp {
             .show(ctx, |ui| {
                 egui::Frame::none()
                     .fill(egui::Color32::from_rgba_unmultiplied(0, 0, 0, 180))
-                    .rounding(egui::Rounding::same(8.0))
-                    .inner_margin(egui::Margin::symmetric(12.0, 8.0))
+                    .rounding(egui::Rounding::same(16.0)) // Doubled from 8.0
+                    .inner_margin(egui::Margin::symmetric(24.0, 16.0)) // Doubled from (12.0, 8.0)
                     .show(ui, |ui| {
                         ui.horizontal(|ui| {
                             // Battery icon (simple rectangle representation)
-                            let icon_size = egui::vec2(30.0, 16.0);
+                            let icon_size = egui::vec2(60.0, 32.0); // Doubled from (30.0, 16.0)
                             let (icon_rect, _) = ui.allocate_exact_size(icon_size, egui::Sense::hover());
                             
                             // Determine battery color based on percentage
@@ -542,26 +542,26 @@ impl PixelSorterApp {
                             // Draw battery outline
                             ui.painter().rect_stroke(
                                 icon_rect,
-                                2.0,
-                                egui::Stroke::new(2.0, egui::Color32::WHITE),
+                                4.0, // Doubled from 2.0
+                                egui::Stroke::new(4.0, egui::Color32::WHITE), // Doubled from 2.0
                             );
                             
                             // Draw battery fill
-                            let fill_width = (icon_rect.width() - 4.0) * (battery_status.percentage / 100.0);
+                            let fill_width = (icon_rect.width() - 8.0) * (battery_status.percentage / 100.0); // Doubled padding from 4.0
                             let fill_rect = egui::Rect::from_min_size(
-                                egui::pos2(icon_rect.min.x + 2.0, icon_rect.min.y + 2.0),
-                                egui::vec2(fill_width, icon_rect.height() - 4.0),
+                                egui::pos2(icon_rect.min.x + 4.0, icon_rect.min.y + 4.0), // Doubled from 2.0
+                                egui::vec2(fill_width, icon_rect.height() - 8.0), // Doubled from 4.0
                             );
-                            ui.painter().rect_filled(fill_rect, 1.0, battery_color);
+                            ui.painter().rect_filled(fill_rect, 2.0, battery_color); // Doubled from 1.0
                             
                             // Draw battery terminal (small nub on right)
                             let terminal_rect = egui::Rect::from_min_size(
-                                egui::pos2(icon_rect.max.x, icon_rect.min.y + 4.0),
-                                egui::vec2(3.0, icon_rect.height() - 8.0),
+                                egui::pos2(icon_rect.max.x, icon_rect.min.y + 8.0), // Doubled from 4.0
+                                egui::vec2(6.0, icon_rect.height() - 16.0), // Doubled from (3.0, 8.0)
                             );
-                            ui.painter().rect_filled(terminal_rect, 1.0, egui::Color32::WHITE);
+                            ui.painter().rect_filled(terminal_rect, 2.0, egui::Color32::WHITE); // Doubled from 1.0
                             
-                            ui.add_space(4.0);
+                            ui.add_space(8.0); // Doubled from 4.0
                             
                             // Text with percentage and voltage
                             let text = if battery_status.is_charging {
@@ -573,14 +573,14 @@ impl PixelSorterApp {
                             ui.label(
                                 egui::RichText::new(text)
                                     .color(egui::Color32::WHITE)
-                                    .size(16.0)
+                                    .size(32.0) // Doubled from 16.0
                             );
                             
                             // Show voltage in smaller text
                             ui.label(
                                 egui::RichText::new(format!("{:.1}V", battery_status.voltage))
                                     .color(egui::Color32::from_rgb(180, 180, 180))
-                                    .size(12.0)
+                                    .size(24.0) // Doubled from 12.0
                             );
                         });
                     });
@@ -592,7 +592,7 @@ impl PixelSorterApp {
             .anchor(egui::Align2::LEFT_TOP, egui::vec2(UI_PADDING, UI_PADDING))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                let button_size = 40.0;
+                let button_size = 80.0; // Doubled from 40.0
                 let button_pos = ui.cursor().min;
                 let button_rect = egui::Rect::from_min_size(
                     button_pos,
@@ -621,7 +621,7 @@ impl PixelSorterApp {
                 ui.painter().circle_filled(center, scaled_radius, bg_color);
                 
                 // Power symbol: partial circle (arc) + line
-                let stroke = egui::Stroke::new(3.0, egui::Color32::WHITE);
+                let stroke = egui::Stroke::new(6.0, egui::Color32::WHITE); // Doubled from 3.0
                 
                 // Vertical line (power button line)
                 let line_start = egui::pos2(center.x, center.y - radius * 0.8);
@@ -719,15 +719,15 @@ impl PixelSorterApp {
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
-                ui.set_min_width(350.0);
+                ui.set_min_width(700.0); // Doubled from 350.0
                 
-                ui.heading("Developer Tools");
-                ui.add_space(10.0);
+                ui.heading(egui::RichText::new("Developer Tools").size(32.0)); // Added size double
+                ui.add_space(20.0); // Doubled from 10.0
                 
                 ui.vertical_centered(|ui| {
                     // System info section
                     ui.group(|ui| {
-                        ui.label(egui::RichText::new("System Info").strong());
+                        ui.label(egui::RichText::new("System Info").strong().size(24.0)); // Added size double
                         ui.separator();
                         
                         // Battery status
@@ -740,30 +740,30 @@ impl PixelSorterApp {
                                 format!("🔋 Battery: {:.0}% ({:.1}V)", 
                                        battery.percentage, battery.voltage)
                             };
-                            ui.label(battery_text);
+                            ui.label(egui::RichText::new(battery_text).size(20.0)); // Added size double
                         } else {
-                            ui.label("🔋 Battery: Not detected");
+                            ui.label(egui::RichText::new("🔋 Battery: Not detected").size(20.0)); // Added size double
                         }
                         
                         // Current phase
-                        ui.label(format!("📍 Phase: {:?}", self.current_phase));
+                        ui.label(egui::RichText::new(format!("📍 Phase: {:?}", self.current_phase)).size(20.0)); // Added size double
                         
                         // Session info
                         if let Some(ref session) = self.current_session_folder {
-                            ui.label(format!("📁 Session: {}", session));
-                            ui.label(format!("🔢 Iteration: {}", self.iteration_counter));
+                            ui.label(egui::RichText::new(format!("📁 Session: {}", session)).size(20.0)); // Added size double
+                            ui.label(egui::RichText::new(format!("🔢 Iteration: {}", self.iteration_counter)).size(20.0)); // Added size double
                         }
                     });
                     
-                    ui.add_space(10.0);
+                    ui.add_space(20.0); // Doubled from 10.0
                     
                     // Actions section
                     ui.group(|ui| {
-                        ui.label(egui::RichText::new("Actions").strong());
+                        ui.label(egui::RichText::new("Actions").strong().size(24.0)); // Added size double
                         ui.separator();
                         
                         // Force update button
-                        if ui.add_sized([300.0, 40.0], egui::Button::new("🔄 Check for Updates")).clicked() {
+                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Check for Updates").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                             log::info!("Manual update check requested");
                             if let Err(e) = trigger_update_check() {
                                 log::error!("Update check failed: {}", e);
@@ -776,10 +776,10 @@ impl PixelSorterApp {
                             self.show_developer_menu = false;
                         }
                         
-                        ui.add_space(5.0);
+                        ui.add_space(10.0); // Doubled from 5.0
                         
                         // Clear session
-                        if ui.add_sized([300.0, 40.0], egui::Button::new("🗑 Clear Session")).clicked() {
+                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🗑 Clear Session").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                             self.iteration_counter = 0;
                             self.current_session_folder = None;
                             self.export_message = Some("✓ Session cleared".to_string());
@@ -788,10 +788,10 @@ impl PixelSorterApp {
                             self.show_developer_menu = false;
                         }
                         
-                        ui.add_space(5.0);
+                        ui.add_space(10.0); // Doubled from 5.0
                         
                         // Restart app
-                        if ui.add_sized([300.0, 40.0], egui::Button::new("🔁 Restart App")).clicked() {
+                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔁 Restart App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                             log::info!("App restart requested");
                             self.export_message = Some("🔁 Restarting...".to_string());
                             self.export_message_time = Some(Instant::now());
@@ -799,25 +799,25 @@ impl PixelSorterApp {
                             // Note: systemd will auto-restart if configured with Restart=on-failure
                         }
                         
-                        ui.add_space(5.0);
+                        ui.add_space(10.0); // Doubled from 5.0
                         
                         // Exit app
-                        if ui.add_sized([300.0, 40.0], egui::Button::new("❌ Exit App")).clicked() {
+                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("❌ Exit App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                             log::info!("Exit app requested from dev menu");
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
                     });
                     
-                    ui.add_space(10.0);
+                    ui.add_space(20.0); // Doubled from 10.0
                     
                     // Close button
-                    if ui.add_sized([300.0, 40.0], egui::Button::new("Close Menu")).clicked() {
+                    if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("Close Menu").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                         self.show_developer_menu = false;
                     }
                 });
                 
-                ui.add_space(5.0);
-                ui.label(egui::RichText::new("Tip: Press ESC or 5-tap bottom-right corner to toggle this menu")
+                ui.add_space(10.0); // Doubled from 5.0
+                ui.label(egui::RichText::new("Tip: Press ESC or 5-tap bottom-right corner to toggle this menu").size(18.0)) // Added size double
                     .small()
                     .color(egui::Color32::GRAY));
             });
