@@ -909,9 +909,13 @@ impl PixelSorterApp {
         );
 
         if let Some(texture) = &self.camera_texture {
-            // Fill entire screen with camera feed
-            ui.allocate_ui_at_rect(rect, |ui| {
-                ui.add(egui::Image::new(texture).fit_to_exact_size(rect.size()));
+            // Cover mode: fill entire screen, crop overflow
+            let image_size = texture.size_vec2();
+            let display_size = cover_image_in_rect(image_size, rect.size());
+            let centered_rect = center_rect_in_rect(display_size, rect);
+            
+            ui.allocate_ui_at_rect(centered_rect, |ui| {
+                ui.add(egui::Image::new(texture).fit_to_exact_size(display_size));
             });
         } else {
             ui.allocate_ui_at_rect(rect, |ui| {
@@ -1622,6 +1626,12 @@ fn vertical_slider(ui: &mut egui::Ui, value: &mut f32, range: std::ops::RangeInc
 // Helper functions for image centering
 fn fit_image_in_rect(image_size: egui::Vec2, container_size: egui::Vec2) -> egui::Vec2 {
     let scale = (container_size.x / image_size.x).min(container_size.y / image_size.y);
+    image_size * scale
+}
+
+// Cover mode: scale to fill entire container (crops overflow)
+fn cover_image_in_rect(image_size: egui::Vec2, container_size: egui::Vec2) -> egui::Vec2 {
+    let scale = (container_size.x / image_size.x).max(container_size.y / image_size.y);
     image_size * scale
 }
 
