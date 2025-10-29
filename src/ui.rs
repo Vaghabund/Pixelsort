@@ -949,6 +949,8 @@ impl PixelSorterApp {
         {
             use std::process::Command;
             
+            log::info!("Checking for updates...");
+            
             // Run git fetch and compare local vs remote
             if let Ok(output) = Command::new("sh")
                 .args(&["-c", "cd ~/Pixelsort && git fetch origin main 2>/dev/null && git rev-parse HEAD && git rev-parse origin/main"])
@@ -960,9 +962,15 @@ impl PixelSorterApp {
                     if lines.len() == 2 {
                         let local = lines[0].trim();
                         let remote = lines[1].trim();
+                        
+                        self.update_check_time = Some(Instant::now());
+                        
                         if local != remote {
                             log::info!("Update available: {} -> {}", &local[..7], &remote[..7]);
                             self.update_available = true;
+                        } else {
+                            log::info!("App is up to date: {}", &local[..7]);
+                            self.update_available = false;
                         }
                     }
                 }
