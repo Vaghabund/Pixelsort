@@ -1,6 +1,7 @@
 use anyhow::Result;
 
 /// Manages application updates via git
+#[allow(dead_code)]
 pub struct UpdateManager {
     /// Whether an update is available
     pub update_available: bool,
@@ -62,39 +63,8 @@ impl UpdateManager {
         Ok(false)
     }
     
-    /// Pull updates from git
-    pub fn pull_updates(&self) -> Result<()> {
-        #[cfg(target_os = "linux")]
-        {
-            use std::process::Command;
-            
-            log::info!("Pulling updates from git...");
-            
-            let cmd = format!("cd {} && git pull origin main", self.project_path);
-            
-            let output = Command::new("sh")
-                .args(&["-c", &cmd])
-                .output()?;
-            
-            if output.status.success() {
-                log::info!("Updates pulled successfully");
-                Ok(())
-            } else {
-                let error = String::from_utf8_lossy(&output.stderr);
-                log::error!("Failed to pull updates: {}", error);
-                Err(anyhow::anyhow!("Git pull failed: {}", error))
-            }
-        }
-        
-        #[cfg(not(target_os = "linux"))]
-        {
-            log::warn!("Update pulling only available on Linux");
-            Ok(())
-        }
-    }
-    
     /// Pull updates and restart the systemd service
-    pub fn pull_and_restart_service(&self, service_name: &str) -> Result<()> {
+    pub fn pull_and_restart_service(&self, _service_name: &str) -> Result<()> {
         #[cfg(target_os = "linux")]
         {
             use std::process::Command;
@@ -103,7 +73,7 @@ impl UpdateManager {
             
             let cmd = format!(
                 "cd {} && git pull origin main && sudo systemctl restart {}",
-                self.project_path, service_name
+                self.project_path, _service_name
             );
             
             Command::new("sh")

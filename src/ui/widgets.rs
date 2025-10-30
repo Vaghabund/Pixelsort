@@ -131,12 +131,6 @@ pub fn vertical_slider(
     changed
 }
 
-/// Render a circular button with default styling
-pub fn circular_button(ui: &mut egui::Ui, radius: f32, text: &str) -> bool {
-    // Glassmorphism: rgba(255, 255, 255, 0.15) = white with 15% opacity
-    circular_button_styled(ui, radius, text, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 38))
-}
-
 /// Render a circular button with custom fill color
 pub fn circular_button_styled(ui: &mut egui::Ui, radius: f32, text: &str, base_fill: egui::Color32) -> bool {
     let size = egui::vec2(radius * 2.0, radius * 2.0);

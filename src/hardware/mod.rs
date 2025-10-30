@@ -6,4 +6,4 @@ pub mod ups_monitor;
 
 // Re-export commonly used types
 pub use camera_controller::CameraController;
-pub use ups_monitor::{UpsConfig, BatteryStatus, get_battery_status, is_shutdown_requested, start_monitoring};
+pub use ups_monitor::{UpsConfig, get_battery_status, is_shutdown_requested, start_monitoring};

@@ -18,7 +18,7 @@ mod viewport;
 mod buttons;
 
 // Re-export public types
-pub use state::{Phase, DragState, HandlePosition};
+pub use state::{Phase, DragState};
 
 // ============================================================================
 // MAIN APP STRUCT

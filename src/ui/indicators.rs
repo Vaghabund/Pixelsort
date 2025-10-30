@@ -1,6 +1,5 @@
 use crate::PixelSorterApp;
 use eframe::egui;
-use std::time::Instant;
 
 const UI_PADDING: f32 = 20.0;
 
