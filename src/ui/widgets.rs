@@ -1,5 +1,31 @@
 use eframe::egui;
 
+/// Ratio of knob diameter relative to the slider `width` parameter.
+///
+/// The widget creates a rail by shrinking the rect horizontally by `width * 0.25` on
+/// each side (rail_width = width * 0.5). The knob diameter is equal to the rail width,
+/// so knob radius = (rail_width / 2) = width * 0.25. Expose the factor here so it's
+/// easy to tune in one place.
+pub const SLIDER_KNOB_RATIO: f32 = 0.25;
+
+/// Helper: given the slider `width` parameter, return the knob radius used by the
+/// vertical slider implementation so callers can reserve matching padding.
+pub fn vertical_slider_knob_radius(slider_width: f32) -> f32 {
+    slider_width * SLIDER_KNOB_RATIO
+}
+
+// --- UI style constants inspired by the provided CSS ---
+// Colors use `from_rgba_unmultiplied(r,g,b,a)` where `a` is 0-255.
+pub fn button_fill_normal() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(255, 255, 255, 38) }
+pub fn button_fill_hover() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(255, 255, 255, 50) }
+pub fn button_fill_active() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(255, 255, 255, 64) }
+pub fn button_border() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(255, 255, 255, 30) }
+pub const BUTTON_SHADOW_ALPHA: u8 = 60; // used with from_black_alpha
+
+pub fn slider_rail_fill() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(255, 255, 255, 26) }
+pub fn slider_fill() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(100, 150, 255, 120) }
+
+
 /// Vertical slider widget with custom touch-friendly styling
 pub fn vertical_slider(
     ui: &mut egui::Ui,
@@ -23,60 +49,73 @@ pub fn vertical_slider(
         painter.rect(
             rail_rect,
             rail_rect.width() / 2.0,  // Fully rounded
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 26),  // 0.1 opacity
+            slider_rail_fill(),
             egui::Stroke::NONE,
         );
 
-        // Calculate normalized position (inverted for vertical)
-        let min = *range.start();
-        let max = *range.end();
-        let normalized = (*value - min) / (max - min);
+    // Calculate normalized position (inverted for vertical)
+    let min = *range.start();
+    let max = *range.end();
+    let normalized = (*value - min) / (max - min);
 
-        // Handle dragging
+        // Compute knob geometry so both dragging and fill calculations use the same values
+        let knob_radius = width * SLIDER_KNOB_RATIO;
+        let knob_diameter = knob_radius * 2.0;
+        let travel = rect.height() - knob_diameter; // how far the knob center can move
+
+        // Handle dragging: map mouse position to normalized value while keeping knob inside rail
         if response.dragged() || response.clicked() {
             if let Some(mouse_pos) = ui.ctx().pointer_interact_pos() {
-                // Invert y-axis (top = max, bottom = min)
-                let new_normalized = 1.0 - ((mouse_pos.y - rect.top()) / rect.height()).clamp(0.0, 1.0);
+                // Map mouse position into normalized value, accounting for knob_radius offset.
+                // top = rect.top() + knob_radius => normalized = 1.0
+                // bottom = rect.top() + knob_radius + travel => normalized = 0.0
+                let pos_in_travel = (mouse_pos.y - (rect.top() + knob_radius)).clamp(0.0, travel);
+                let new_normalized = 1.0 - (pos_in_travel / travel).clamp(0.0, 1.0);
+
                 *value = min + new_normalized * (max - min);
                 changed = true;
                 response.mark_changed();
             }
         }
 
+        // Compute knob center such that the knob sits fully inside the rail at both ends.
+        let knob_y = rect.top() + knob_radius + travel * (1.0 - normalized);
+        let knob_center = egui::pos2(rect.center().x, knob_y);
+
         // Filled portion (from bottom up) - subtle blue fill
-        let filled_height = rect.height() * normalized;
-        if filled_height > 0.0 {
-            let filled_rect = egui::Rect::from_min_max(
-                egui::pos2(rail_rect.min.x, rail_rect.max.y - filled_height),
-                rail_rect.max,
-            );
+        // Make the fill reach the top edge of the knob (so it visually meets the knob)
+        let filled_top = (knob_center.y - knob_radius).max(rail_rect.min.y);
+        let filled_rect = egui::Rect::from_min_max(
+            egui::pos2(rail_rect.min.x, filled_top),
+            rail_rect.max,
+        );
+        // Only draw if there's visible height
+        if filled_rect.height() > 0.0 {
             painter.rect(
                 filled_rect,
+                // Keep corner radius equal to rail's radius for consistent rounding
                 rail_rect.width() / 2.0,
-                egui::Color32::from_rgba_unmultiplied(100, 150, 255, 120),
+                slider_fill(),
                 egui::Stroke::NONE,
             );
         }
-
-        // CSS: Knob/handle - larger size for better touch
-        let knob_y = rect.bottom() - rect.height() * normalized;
-        let knob_center = egui::pos2(rect.center().x, knob_y);
-        let knob_radius = 30.0;  // Increased from 25 to 30 (60px diameter)
 
         // CSS: box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3)
         painter.circle(
             knob_center + egui::vec2(0.0, 2.0),
             knob_radius,
-            egui::Color32::from_black_alpha(77),  // 0.3 opacity
+            egui::Color32::from_black_alpha(BUTTON_SHADOW_ALPHA),
             egui::Stroke::NONE,
         );
 
-        // CSS: background: rgba(255, 255, 255, 0.9), border: 4px solid rgba(255, 255, 255, 0.3)
+        // CSS: background: rgba(255, 255, 255, 0.9)
+        // Border thickness scales with knob size (keeps visual proportions)
+        let stroke_width = (knob_radius * 0.13).max(1.0);
         painter.circle(
             knob_center,
             knob_radius,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 230),  // 0.9 opacity
-            egui::Stroke::new(4.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 77)),  // 0.3 opacity
+            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 230), // 0.9 opacity
+            egui::Stroke::new(stroke_width, button_border()),
         );
 
         // Show value bubble when dragging (on top layer to avoid clipping)
@@ -146,13 +185,13 @@ pub fn circular_button_styled(ui: &mut egui::Ui, radius: f32, text: &str, base_f
 
         // Determine colors based on interaction state (CSS glassmorphism)
         let fill_color = if response.is_pointer_button_down_on() {
-            // Active/pressed state: rgba(255, 255, 255, 0.25)
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 64)
+            // Active/pressed state
+            button_fill_active()
         } else if response.hovered() {
-            // Hover state: slightly brighter than base
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, 50)
+            // Hover state
+            button_fill_hover()
         } else {
-            // Normal state: rgba(255, 255, 255, 0.15)
+            // Normal state
             base_fill
         };
 
@@ -169,7 +208,7 @@ pub fn circular_button_styled(ui: &mut egui::Ui, radius: f32, text: &str, base_f
             center,
             scaled_radius,
             fill_color,
-            egui::Stroke::new(1.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 30)),
+            egui::Stroke::new(1.0, button_border()),
         );
 
         // Draw text in center

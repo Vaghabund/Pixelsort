@@ -1,6 +1,6 @@
 use crate::PixelSorterApp;
 use crate::ui::state::Phase;
-use crate::ui::widgets::{vertical_slider, circular_button_styled};
+use crate::ui::widgets::{vertical_slider, circular_button_styled, button_fill_normal};
 use crate::processing::SortingAlgorithm;
 use eframe::egui;
 use std::time::Instant;
@@ -55,15 +55,15 @@ impl PixelSorterApp {
     }
 
     // ============================================================================
-    // PHASE 2: EDIT - Horizontal sliders on right, buttons on left in two rows
+    // PHASE 2: EDIT - Vertical sliders on right, buttons on left in two rows
     // ============================================================================
     fn render_edit_buttons_circular(&mut self, ctx: &egui::Context, screen_rect: egui::Rect) {
         const BUTTON_RADIUS: f32 = 100.0;  // Even larger buttons for better touch targets
-        const SLIDER_WIDTH: f32 = 80.0;    // Wider sliders with bigger handles
+        const SLIDER_WIDTH: f32 = 200.0;    // Wider sliders with bigger handles
         const SLIDER_HEIGHT: f32 = 300.0;
         const SPACING: f32 = 20.0;
 
-        // Right side: Horizontal sliders (side by side)
+        // Right side: Vertical sliders (side by side)
         self.render_vertical_sliders(ctx, screen_rect, SLIDER_WIDTH, SLIDER_HEIGHT, SPACING);
 
         // Left side: Buttons in two rows, aligned to left border
@@ -75,7 +75,7 @@ impl PixelSorterApp {
             .fixed_pos(egui::pos2(SPACING, row1_y))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if self.circular_button(ui, BUTTON_RADIUS, self.current_algorithm.name(), "algo") {
+                if self.circular_button(ui, BUTTON_RADIUS, self.current_algorithm.name(), "Algo") {
                     self.cycle_algorithm();
                     self.apply_pixel_sort(ctx);
                 }
@@ -86,7 +86,7 @@ impl PixelSorterApp {
             .fixed_pos(egui::pos2(SPACING + BUTTON_RADIUS * 2.0 + SPACING, row1_y))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if self.circular_button(ui, BUTTON_RADIUS, self.sorting_params.sort_mode.name(), "mode") {
+                if self.circular_button(ui, BUTTON_RADIUS, self.sorting_params.sort_mode.name(), "Mode") {
                     self.sorting_params.sort_mode = self.sorting_params.sort_mode.next();
                     self.apply_pixel_sort(ctx);
                 }
@@ -201,12 +201,13 @@ impl PixelSorterApp {
     fn render_vertical_sliders(&mut self, ctx: &egui::Context, screen_rect: egui::Rect,
                                 slider_width: f32, _slider_height: f32, spacing: f32) {
         // Place sliders side by side on the right edge with more space between them
-        let slider_spacing = spacing * 3.0;  // Triple the spacing between sliders
+        let slider_spacing = spacing * 2.0;  // Double the spacing between sliders
 
-        // More padding at top and bottom to prevent handle cutoff
-        let knob_radius = slider_width * 0.8; // Same calculation as in vertical_slider (updated to 0.8)
-        let top_padding = spacing * 3.0 + knob_radius; // Extra space for top handle
-        let bottom_padding = spacing * 5.0; // Extra space for label and bottom handle
+    // More padding at top and bottom to prevent handle cutoff.
+    // Compute knob radius from the widget so spacing matches the actual handle size.
+    let knob_radius = crate::ui::widgets::vertical_slider_knob_radius(slider_width);
+    let top_padding = spacing * 3.0 + knob_radius; // Extra space for top handle
+    let bottom_padding = spacing * 5.0; // Extra space for label and bottom handle
 
         // Stretch sliders to fill screen height (with padding)
         let full_slider_height = screen_rect.height() - top_padding - bottom_padding;
@@ -262,8 +263,8 @@ impl PixelSorterApp {
 
     /// Basic circular button with default styling
     fn circular_button(&self, ui: &mut egui::Ui, radius: f32, text: &str, _id: &str) -> bool {
-        // Glassmorphism: rgba(255, 255, 255, 0.15) = white with 15% opacity
-        circular_button_styled(ui, radius, text, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 38))
+        // Use centralized button fill color
+        circular_button_styled(ui, radius, text, button_fill_normal())
     }
 
     pub fn cycle_algorithm(&mut self) {
