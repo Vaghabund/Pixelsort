@@ -31,7 +31,7 @@ impl PixelSorterApp {
 
     fn apply_tint_to_image(&self, image: &mut image::RgbImage, tint_hue: f32) {
         let (width, height) = image.dimensions();
-        let tint_color = crate::pixel_sorter::hue_to_rgb_pixel(tint_hue);
+        let tint_color = crate::processing::pixel_sorter::hue_to_rgb_pixel(tint_hue);
         let strength = 0.2; // Strength for tinting
         
         for y in 0..height {
