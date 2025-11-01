@@ -7,30 +7,38 @@ SERVICE_NAME="$2"
 
 echo "=========================================="
 echo "Harpy Update - Background Rebuild"
+echo "Date: $(date)"
 echo "=========================================="
 
 # Wait a moment for the app to fully exit
-sleep 2
+echo "Waiting for app to exit..."
+sleep 3
 
-cd "$PROJECT_PATH" || exit 1
+cd "$PROJECT_PATH" || {
+    echo "ERROR: Failed to change to directory $PROJECT_PATH"
+    exit 1
+}
 
 echo "Pulling latest code..."
-git pull origin main 2>&1
+git pull origin main
 
 if [ $? -ne 0 ]; then
-    echo "ERROR: Git pull failed"
+    echo "ERROR: Git pull failed - restarting service with existing binary"
+    sudo systemctl restart "$SERVICE_NAME"
     exit 1
 fi
 
 echo "Rebuilding application (this may take 5-10 minutes)..."
-cargo build --release 2>&1
+cargo build --release
 
 if [ $? -ne 0 ]; then
-    echo "ERROR: Build failed"
+    echo "ERROR: Build failed - restarting service with existing binary"
+    sudo systemctl restart "$SERVICE_NAME"
     exit 1
 fi
 
 echo "Build complete! Restarting service..."
 sudo systemctl restart "$SERVICE_NAME"
 
-echo "Update complete!"
+echo "Update complete at $(date)"
+echo "=========================================="

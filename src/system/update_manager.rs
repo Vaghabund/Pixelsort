@@ -78,20 +78,30 @@ impl UpdateManager {
         #[cfg(target_os = "linux")]
         {
             use std::process::Command;
+            use std::path::Path;
             
             log::info!("Starting update process for service: {}", service_name);
             
-            // Spawn the background update script that will:
-            // 1. Wait for app to exit
-            // 2. Pull updates
-            // 3. Rebuild the binary
-            // 4. Restart the service
             let update_script = format!("{}/deployment/update_and_rebuild.sh", self.project_path);
             
-            log::info!("Spawning background update script: {}", update_script);
-            Command::new("sh")
-                .args(&[&update_script, &self.project_path, service_name])
-                .spawn()?;
+            // Check if update script exists
+            if Path::new(&update_script).exists() {
+                // Use the proper update script
+                log::info!("Spawning background update script: {}", update_script);
+                Command::new("sh")
+                    .args(&[&update_script, &self.project_path, service_name])
+                    .spawn()?;
+            } else {
+                // Fallback: inline update commands (for first-time update when script doesn't exist yet)
+                log::warn!("Update script not found, using fallback inline method");
+                let fallback_cmd = format!(
+                    "sleep 3 && cd {} && git pull origin main && cargo build --release && sudo systemctl restart {}",
+                    self.project_path, service_name
+                );
+                Command::new("sh")
+                    .args(&["-c", &fallback_cmd])
+                    .spawn()?;
+            }
             
             log::info!("Background update spawned - exiting app to allow rebuild");
             
