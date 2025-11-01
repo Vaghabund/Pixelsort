@@ -38,7 +38,6 @@ const BUTTON_SMALL_RADIUS: f32 = 60.0;    // Secondary buttons (Upload)
 const BUTTON_SPACING: f32 = 20.0;         // Space between buttons
 
 const SLIDER_WIDTH: f32 = 200.0;          // Width of slider tracks
-const SLIDER_SPACING_BETWEEN: f32 = 40.0; // Space between multiple sliders
 
 // ============================================================================
 // Internal functions (uses constants above)
@@ -100,14 +99,12 @@ impl ButtonSizes {
 /// Slider dimensions
 pub struct SliderSizes {
     pub width: f32,
-    pub spacing_between: f32,  // Space between multiple sliders
 }
 
 impl SliderSizes {
     pub fn standard() -> Self {
         Self {
             width: SLIDER_WIDTH,
-            spacing_between: SLIDER_SPACING_BETWEEN,
         }
     }
 }

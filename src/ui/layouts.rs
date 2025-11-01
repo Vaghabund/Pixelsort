@@ -18,15 +18,28 @@ use eframe::egui;
 const EDIT_ROW1_OFFSET: f32 = 4.0;  // Row 1 distance from bottom (in button heights + spacing)
 const EDIT_ROW2_OFFSET: f32 = 2.0;  // Row 2 distance from bottom (in button heights + spacing)
 
+// Edit Phase - Button horizontal positioning
+const EDIT_BUTTON_COLUMNS: f32 = 3.0;  // Number of button columns (for New button position)
+
 // Edit Phase - Slider positioning
 const SLIDER_TOP_PADDING_MULTIPLIER: f32 = 3.0;    // Top padding (spacing * this value + knob radius)
 const SLIDER_BOTTOM_PADDING_MULTIPLIER: f32 = 5.0; // Bottom padding (spacing * this value)
+const SLIDER_SPACING_BETWEEN: f32 = 40.0;          // Horizontal space between Threshold and Hue sliders
+
+// Slider value ranges
+const THRESHOLD_MIN: f32 = 0.0;    // Minimum threshold value
+const THRESHOLD_MAX: f32 = 125.0;  // Maximum threshold value
+const HUE_MIN: f32 = 0.0;          // Minimum hue value (degrees)
+const HUE_MAX: f32 = 360.0;        // Maximum hue value (degrees)
 
 // USB Export button
-const USB_BUTTON_SCALE: f32 = 0.7;  // USB button size relative to normal buttons (0.7 = 70%)
+const USB_BUTTON_SCALE: f32 = 0.7;           // USB button size relative to normal buttons (0.7 = 70%)
+const USB_BUTTON_Y_OFFSET_DIVISOR: f32 = 2.0; // Y position offset (spacing divided by this value)
 
-// Crop Phase - Button vertical centering
+// Crop Phase - Button positioning
 const CROP_BUTTON_VERTICAL_SPACING_MULTIPLIER: f32 = 2.0; // Spacing between Cancel/Apply buttons
+const CROP_BUTTON_TOTAL_HEIGHT_MULTIPLIER: f32 = 4.0;     // Total height calculation (radius * this value)
+const CROP_APPLY_BUTTON_Y_MULTIPLIER: f32 = 3.0;          // Apply button Y position (radius * this value)
 
 impl PixelSorterApp {
     /// Main entry point for rendering phase-specific button overlays
@@ -150,7 +163,7 @@ impl PixelSorterApp {
         // New Image button
         egui::Area::new("new_btn")
             .fixed_pos(egui::pos2(
-                btn_sizes.spacing + (btn_sizes.normal_radius * 2.0 + btn_sizes.spacing) * 2.0, 
+                btn_sizes.spacing + (btn_sizes.normal_radius * 2.0 + btn_sizes.spacing) * (EDIT_BUTTON_COLUMNS - 1.0), 
                 row2_y
             ))
             .order(egui::Order::Foreground)
@@ -163,7 +176,7 @@ impl PixelSorterApp {
 
         // Optional: USB export button if USB present
         if self.usb_present() {
-            let export_y = screen_rect.max.y - btn_sizes.normal_radius - btn_sizes.spacing / 2.0;
+            let export_y = screen_rect.max.y - btn_sizes.normal_radius - btn_sizes.spacing / USB_BUTTON_Y_OFFSET_DIVISOR;
             egui::Area::new("export_btn")
                 .fixed_pos(egui::pos2(btn_sizes.spacing, export_y))
                 .order(egui::Order::Foreground)
@@ -186,7 +199,7 @@ impl PixelSorterApp {
         let button_vertical_spacing = sizes.spacing * CROP_BUTTON_VERTICAL_SPACING_MULTIPLIER;
 
         // Center buttons vertically
-        let total_height = sizes.normal_radius * 4.0 + button_vertical_spacing;
+        let total_height = sizes.normal_radius * CROP_BUTTON_TOTAL_HEIGHT_MULTIPLIER + button_vertical_spacing;
         let start_y = (screen_rect.height() - total_height) / 2.0 + screen_rect.min.y;
 
         // Cancel button (top)
@@ -206,7 +219,7 @@ impl PixelSorterApp {
         egui::Area::new("apply_crop_btn")
             .fixed_pos(egui::pos2(
                 left_x,
-                start_y + sizes.normal_radius * 3.0 + button_vertical_spacing
+                start_y + sizes.normal_radius * CROP_APPLY_BUTTON_Y_MULTIPLIER + button_vertical_spacing
             ) - egui::vec2(sizes.normal_radius, sizes.normal_radius))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
@@ -236,7 +249,7 @@ impl PixelSorterApp {
 
         // Position sliders side by side on right edge
         let slider2_x = screen_rect.max.x - slider_sizes.width - spacing;
-        let slider1_x = slider2_x - slider_sizes.width - slider_sizes.spacing_between;
+        let slider1_x = slider2_x - slider_sizes.width - SLIDER_SPACING_BETWEEN;
         let start_y = screen_rect.min.y + top_padding;
 
         // Threshold slider (left)
@@ -246,7 +259,7 @@ impl PixelSorterApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
-                    vertical_slider(ui, &mut threshold, 0.0..=125.0, 
+                    vertical_slider(ui, &mut threshold, THRESHOLD_MIN..=THRESHOLD_MAX, 
                         slider_sizes.width, full_slider_height, "Threshold")
                 }).inner
             }).inner;
@@ -263,7 +276,7 @@ impl PixelSorterApp {
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
-                    vertical_slider(ui, &mut color_tint, 0.0..=360.0, 
+                    vertical_slider(ui, &mut color_tint, HUE_MIN..=HUE_MAX, 
                         slider_sizes.width, full_slider_height, "Hue")
                 }).inner
             }).inner;
