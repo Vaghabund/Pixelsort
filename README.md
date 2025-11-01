@@ -205,46 +205,74 @@ The codebase is organized into domain-specific modules:
   - 5-tap corner detection for touch exit
 
 ### User Interface (`src/ui/`)
+
+The UI is structured for easy customization with quick-edit variables at the top of each file:
+
 - **mod.rs** - Main UI coordinator and phase management
   - Three-phase workflow (Input → Edit → Crop)
   - Phase transitions and state management
+  
 - **state.rs** - UI state container
   - Current phase tracking
   - Image state (original, processed, cropped)
   - Slider values, algorithm selection
+  
+- **styles.rs** - Visual styling configuration (**edit colors and sizes here**)
+  - Quick-edit constants for all colors (button alphas, slider RGB values)
+  - Quick-edit constants for all sizes (button radii, spacing, slider width)
+  - MenuStyle classes for popup menus
+  - All visual appearance adjustable from top of file
+  
+- **components.rs** - UI component rendering (**edit animations and behavior here**)
+  - Quick-edit constants for rendering (button animations, shadow offsets, fonts)
+  - Quick-edit constants for effects (bubble opacity, label sizes)
+  - Circular button rendering with hover/press states
+  - Vertical slider rendering with touch-friendly handles
+  - All component behavior adjustable from top of file
+  
+- **layouts.rs** - Spatial positioning (**edit positions and padding here**)
+  - Quick-edit constants for layout (row offsets, padding multipliers)
+  - Quick-edit constants for spacing (button positions, slider alignment)
+  - Input phase layout (Take Picture, Upload buttons)
+  - Edit phase layout (Algorithm/Mode/Crop/Iterate/New buttons + sliders)
+  - Crop phase layout (Cancel/Apply buttons)
+  - All positioning adjustable from top of file
+  
 - **screens.rs** - Phase-specific screen rendering
   - Input screen (camera preview, capture button)
   - Edit screen (image display, controls)
   - Crop screen (draggable handles)
   - Sleep screen (dim logo after 5 min idle)
-- **buttons.rs** - Button rendering and interaction
-  - Large circular touch buttons (100-120px radius)
-  - Hover/press states with alpha blending
-- **widgets.rs** - Custom UI widgets
-  - Vertical sliders with oversized handles
-  - Slider rail backgrounds and styling
+  
 - **menus.rs** - Popup menu system
   - Power menu (Exit/Restart)
   - Developer menu (Update/Restart)
   - USB export menu
-- **styles.rs** - Centralized styling configuration
-  - MenuStyle classes for consistent sizing
-  - Color schemes and alpha values
-  - Button text formatting
+  
 - **helpers.rs** - UI utility functions
   - Layout helpers
   - Common UI patterns
+  
 - **indicators.rs** - Status indicators and overlays
   - Battery level display
   - Export status popups
+  
 - **viewport.rs** - Window and viewport management
   - Fullscreen configuration
   - Resolution handling (1920x1080)
   - Cursor hiding for kiosk mode
+  
 - **camera.rs** - Camera UI integration
   - Capture button logic
   - Phase transition after capture
   - Links UI to camera_controller
+
+**Customization Made Easy:**
+- Want to change **button colors**? → Edit constants at top of `styles.rs`
+- Want to **move buttons**? → Edit constants at top of `layouts.rs`
+- Want to change **button animations**? → Edit constants at top of `components.rs`
+
+No need to hunt through code - all frequently adjusted values are grouped at the top of their respective files.
 
 ### Assets & Output
 ```
