@@ -279,4 +279,87 @@ impl PixelSorterApp {
                 );
             });
     }
+
+    pub fn render_usb_export_dialog(&mut self, ctx: &egui::Context) {
+        if !self.show_usb_export_dialog {
+            return;
+        }
+
+        egui::Window::new("💾 Export to USB")
+            .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                let menu_width = 450.0;
+                let button_height = 70.0;
+                
+                ui.set_min_width(menu_width);
+
+                ui.vertical_centered(|ui| {
+                    ui.add_space(10.0);
+                    
+                    ui.label(egui::RichText::new("📁 Copy all sorted images to USB?").size(22.0));
+                    
+                    ui.add_space(15.0);
+                    
+                    // Checkbox for delete after copy
+                    ui.horizontal(|ui| {
+                        ui.add_space((menu_width - 320.0) / 2.0); // Center the checkbox
+                        ui.checkbox(&mut self.usb_export_delete_after, 
+                            egui::RichText::new("Delete images after copying").size(18.0));
+                    });
+                    
+                    ui.add_space(20.0);
+                    
+                    // Copy button
+                    if ui.add_sized([menu_width, button_height], 
+                        egui::Button::new(egui::RichText::new("✓ Copy to USB").size(24.0))
+                            .fill(egui::Color32::from_rgb(40, 120, 40)))
+                        .clicked() 
+                    {
+                        log::info!("USB export started (delete_after: {})", self.usb_export_delete_after);
+                        
+                        match self.copy_to_usb() {
+                            Ok(()) => {
+                                self.export_message = Some("✓ Exported to USB!".to_string());
+                                
+                                // Delete files if checkbox was checked
+                                if self.usb_export_delete_after {
+                                    if let Err(e) = std::fs::remove_dir_all("sorted_images") {
+                                        log::error!("Failed to delete images: {}", e);
+                                        self.export_message = Some(format!("⚠ Exported but deletion failed: {}", e));
+                                    } else {
+                                        log::info!("Deleted local sorted_images folder after export");
+                                        self.export_message = Some("✓ Exported and deleted local copies!".to_string());
+                                        // Reset session since we deleted everything
+                                        self.current_session_folder = None;
+                                        self.iteration_counter = 0;
+                                    }
+                                }
+                                
+                                self.export_message_time = Some(Instant::now());
+                            }
+                            Err(e) => {
+                                self.export_message = Some(format!("✗ Export failed: {}", e));
+                                self.export_message_time = Some(Instant::now());
+                            }
+                        }
+                        
+                        self.show_usb_export_dialog = false;
+                        self.usb_export_delete_after = false; // Reset for next time
+                    }
+                    
+                    ui.add_space(10.0);
+                    
+                    // Cancel button
+                    if ui.add_sized([menu_width, button_height], 
+                        egui::Button::new(egui::RichText::new("Cancel").size(24.0)))
+                        .clicked() 
+                    {
+                        self.show_usb_export_dialog = false;
+                        self.usb_export_delete_after = false; // Reset
+                    }
+                });
+            });
+    }
 }

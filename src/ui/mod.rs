@@ -81,6 +81,10 @@ pub struct PixelSorterApp {
     // Shutdown menu
     pub show_shutdown_menu: bool,
     
+    // USB export dialog
+    pub show_usb_export_dialog: bool,
+    pub usb_export_delete_after: bool,
+    
     // Developer menu
     pub show_developer_menu: bool,
     
@@ -137,6 +141,8 @@ impl PixelSorterApp {
             update_check_time: None,
             startup_check_done: false,
             show_shutdown_menu: false,
+            show_usb_export_dialog: false,
+            usb_export_delete_after: false,
             show_developer_menu: false,
             tint_enabled: false,
         }
@@ -349,6 +355,7 @@ impl PixelSorterApp {
                 self.render_battery_indicator(ctx, full_rect);
                 self.render_shutdown_button(ctx, full_rect);
                 self.render_developer_menu(ctx, full_rect);
+                self.render_usb_export_dialog(ctx);
                 self.render_export_message(ctx, full_rect);
             });
     }

@@ -138,16 +138,8 @@ impl PixelSorterApp {
                 .show(ctx, |ui| {
                     if circular_button_styled(ui, BUTTON_RADIUS * 0.7, "USB",
                         egui::Color32::from_rgba_unmultiplied(40, 80, 40, 180)) {
-                        match self.copy_to_usb() {
-                            Ok(()) => {
-                                self.export_message = Some("✓ Exported to USB!".to_string());
-                                self.export_message_time = Some(Instant::now());
-                            }
-                            Err(e) => {
-                                self.export_message = Some(format!("✗ Export failed: {}", e));
-                                self.export_message_time = Some(Instant::now());
-                            }
-                        }
+                        // Show USB export dialog
+                        self.show_usb_export_dialog = true;
                     }
                 });
         }
