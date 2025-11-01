@@ -86,44 +86,52 @@ impl PixelSorterApp {
                     ui.set_min_width(menu_width);
 
                     ui.vertical_centered(|ui| {
-                        // Shutdown button
-                        if ui.add_sized([menu_width, button_height], egui::Button::new("🔌 Shutdown")).clicked() {
-                            log::info!("Shutdown requested by user");
-                            if let Err(e) = SystemControl::shutdown() {
-                                log::error!("Failed to shutdown: {}", e);
-                                self.export_message = Some(format!("✗ Shutdown failed: {}", e));
-                                self.export_message_time = Some(Instant::now());
-                            }
-                            self.show_shutdown_menu = false;
-                        }
+                            // Shutdown button (centered horizontally)
+                            ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                                if ui.add_sized([menu_width, button_height], egui::Button::new("🔌 Shutdown")).clicked() {
+                                    log::info!("Shutdown requested by user");
+                                    if let Err(e) = SystemControl::shutdown() {
+                                        log::error!("Failed to shutdown: {}", e);
+                                        self.export_message = Some(format!("✗ Shutdown failed: {}", e));
+                                        self.export_message_time = Some(Instant::now());
+                                    }
+                                    self.show_shutdown_menu = false;
+                                }
+                            });
 
                         ui.add_space(5.0);
 
-                        // Reboot button
-                        if ui.add_sized([menu_width, button_height], egui::Button::new("🔄 Reboot")).clicked() {
-                            log::info!("Reboot requested by user");
-                            if let Err(e) = SystemControl::reboot() {
-                                log::error!("Failed to reboot: {}", e);
-                                self.export_message = Some(format!("✗ Reboot failed: {}", e));
-                                self.export_message_time = Some(Instant::now());
+                        // Reboot button (centered horizontally)
+                        ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                            if ui.add_sized([menu_width, button_height], egui::Button::new("🔄 Reboot")).clicked() {
+                                log::info!("Reboot requested by user");
+                                if let Err(e) = SystemControl::reboot() {
+                                    log::error!("Failed to reboot: {}", e);
+                                    self.export_message = Some(format!("✗ Reboot failed: {}", e));
+                                    self.export_message_time = Some(Instant::now());
+                                }
+                                self.show_shutdown_menu = false;
                             }
-                            self.show_shutdown_menu = false;
-                        }
+                        });
 
                         ui.add_space(5.0);
 
-                        // Exit app button
-                        if ui.add_sized([menu_width, button_height], egui::Button::new("❌ Exit App")).clicked() {
-                            log::info!("Exit app requested by user");
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
+                        // Exit app button (centered horizontally)
+                        ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                            if ui.add_sized([menu_width, button_height], egui::Button::new("❌ Exit App")).clicked() {
+                                log::info!("Exit app requested by user");
+                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                            }
+                        });
 
                         ui.add_space(10.0);
 
-                        // Cancel button
-                        if ui.add_sized([menu_width, cancel_height], egui::Button::new("Cancel")).clicked() {
-                            self.show_shutdown_menu = false;
-                        }
+                        // Cancel button (centered horizontally)
+                        ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                            if ui.add_sized([menu_width, cancel_height], egui::Button::new("Cancel")).clicked() {
+                                self.show_shutdown_menu = false;
+                            }
+                        });
                     });
                 });
         }
@@ -193,82 +201,94 @@ impl PixelSorterApp {
                             ui.label(egui::RichText::new("🆕 Update Available!").color(egui::Color32::from_rgb(100, 220, 100)).size(22.0));
                             ui.add_space(5.0);
 
-                            // Restart & Update button
-                            if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔄 Pull & Restart").size(24.0))).clicked() {
-                                log::info!("Pull & Restart requested");
-                                self.export_message = Some("🔄 Pulling updates and restarting...".to_string());
-                                self.export_message_time = Some(Instant::now());
-                                self.show_developer_menu = false;
+                            // Restart & Update button (centered)
+                            ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                                if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔄 Pull & Restart").size(24.0))).clicked() {
+                                    log::info!("Pull & Restart requested");
+                                    self.export_message = Some("🔄 Pulling updates and restarting...".to_string());
+                                    self.export_message_time = Some(Instant::now());
+                                    self.show_developer_menu = false;
 
-                                // Pull updates and restart service using update_manager
-                                let _ = self.update_manager.pull_and_restart_service("pixelsort-kiosk");
-                            }
+                                    // Pull updates and restart service using update_manager
+                                    let _ = self.update_manager.pull_and_restart_service("pixelsort-kiosk");
+                                }
+                            });
                         } else {
                             ui.label(egui::RichText::new("✅ App is up to date").color(egui::Color32::GRAY).size(20.0));
                             ui.add_space(5.0);
 
-                            // Manual check button
-                            if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔄 Check Now").size(24.0))).clicked() {
-                                log::info!("Manual update check requested");
-                                match self.update_manager.check_for_updates() {
-                                    Ok(update_found) => {
-                                        if update_found {
-                                            self.export_message = Some("🆕 Update found! Restart to apply.".to_string());
-                                            log::info!("Update available!");
-                                        } else {
-                                            self.export_message = Some("✅ Already up to date".to_string());
-                                            log::info!("No updates available");
+                            // Manual check button (centered)
+                            ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                                if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔄 Check Now").size(24.0))).clicked() {
+                                    log::info!("Manual update check requested");
+                                    match self.update_manager.check_for_updates() {
+                                        Ok(update_found) => {
+                                            if update_found {
+                                                self.export_message = Some("🆕 Update found! Restart to apply.".to_string());
+                                                log::info!("Update available!");
+                                            } else {
+                                                self.export_message = Some("✅ Already up to date".to_string());
+                                                log::info!("No updates available");
+                                            }
+                                            self.update_check_time = Some(Instant::now());
                                         }
-                                        self.update_check_time = Some(Instant::now());
+                                        Err(e) => {
+                                            self.export_message = Some(format!("❌ Update check failed: {}", e));
+                                            log::error!("Update check failed: {}", e);
+                                        }
                                     }
-                                    Err(e) => {
-                                        self.export_message = Some(format!("❌ Update check failed: {}", e));
-                                        log::error!("Update check failed: {}", e);
-                                    }
+                                    self.export_message_time = Some(Instant::now());
+                                    // Don't close menu - let user see the result
                                 }
+                            });
+                        }
+
+                        ui.add_space(10.0); // Doubled from 5.0
+
+                        // Clear session (centered)
+                        ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                            if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🗑 Clear Session").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                                self.iteration_counter = 0;
+                                self.current_session_folder = None;
+                                self.export_message = Some("✓ Session cleared".to_string());
                                 self.export_message_time = Some(Instant::now());
-                                // Don't close menu - let user see the result
+                                log::info!("Session manually cleared");
+                                self.show_developer_menu = false;
                             }
-                        }
+                        });
 
                         ui.add_space(10.0); // Doubled from 5.0
 
-                        // Clear session
-                        if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🗑 Clear Session").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
-                            self.iteration_counter = 0;
-                            self.current_session_folder = None;
-                            self.export_message = Some("✓ Session cleared".to_string());
-                            self.export_message_time = Some(Instant::now());
-                            log::info!("Session manually cleared");
-                            self.show_developer_menu = false;
-                        }
+                        // Restart app (centered)
+                        ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                            if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔁 Restart App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                                log::info!("App restart requested");
+                                self.export_message = Some("🔁 Restarting...".to_string());
+                                self.export_message_time = Some(Instant::now());
+                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                                // Note: systemd will auto-restart if configured with Restart=on-failure
+                            }
+                        });
 
                         ui.add_space(10.0); // Doubled from 5.0
 
-                        // Restart app
-                        if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔁 Restart App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
-                            log::info!("App restart requested");
-                            self.export_message = Some("🔁 Restarting...".to_string());
-                            self.export_message_time = Some(Instant::now());
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                            // Note: systemd will auto-restart if configured with Restart=on-failure
-                        }
-
-                        ui.add_space(10.0); // Doubled from 5.0
-
-                        // Exit app
-                        if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("❌ Exit App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
-                            log::info!("Exit app requested from dev menu");
-                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                        }
+                        // Exit app (centered)
+                        ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                            if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("❌ Exit App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                                log::info!("Exit app requested from dev menu");
+                                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                            }
+                        });
                     });
 
                     ui.add_space(20.0); // Doubled from 10.0
 
-                    // Close button
-                    if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("Close Menu").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
-                        self.show_developer_menu = false;
-                    }
+                    // Close button (centered)
+                    ui.with_layout(egui::Layout::centered(egui::Align::Center), |ui| {
+                        if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("Close Menu").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                            self.show_developer_menu = false;
+                        }
+                    });
                 });
 
                 ui.add_space(10.0); // Doubled from 5.0

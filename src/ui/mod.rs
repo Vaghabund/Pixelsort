@@ -80,7 +80,9 @@ pub struct PixelSorterApp {
     
     // Shutdown menu
     pub show_shutdown_menu: bool,
-    
+    // Track previous USB presence to detect new mounts
+    pub prev_usb_present: bool,
+
     // USB export dialog
     pub show_usb_export_dialog: bool,
     pub usb_export_delete_after: bool,
@@ -141,6 +143,7 @@ impl PixelSorterApp {
             update_check_time: None,
             startup_check_done: false,
             show_shutdown_menu: false,
+            prev_usb_present: false,
             show_usb_export_dialog: false,
             usb_export_delete_after: false,
             show_developer_menu: false,
@@ -349,7 +352,15 @@ impl PixelSorterApp {
             .frame(egui::Frame::none())
             .show(ctx, |ui| {
                 let full_rect = ui.max_rect();
-                
+
+                // Detect USB mount edge: if a USB is now present but wasn't before, open dialog
+                let usb_now = self.usb_present();
+                if usb_now && !self.prev_usb_present && !self.show_usb_export_dialog {
+                    log::info!("USB mounted - opening export dialog");
+                    self.show_usb_export_dialog = true;
+                }
+                self.prev_usb_present = usb_now;
+
                 self.render_viewport(ui, full_rect, ctx);
                 self.render_button_overlay(ui, ctx, full_rect);
                 self.render_battery_indicator(ctx, full_rect);
