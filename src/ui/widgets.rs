@@ -22,7 +22,7 @@ pub fn button_fill_active() -> egui::Color32 { egui::Color32::from_rgba_unmultip
 pub fn button_border() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(255, 255, 255, 30) }
 pub const BUTTON_SHADOW_ALPHA: u8 = 60; // used with from_black_alpha
 
-pub fn slider_rail_fill() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(255, 255, 255, 26) }
+pub fn slider_rail_fill() -> egui::Color32 { egui::Color32::from_rgb(60, 60, 70) } // Match dark button color
 pub fn slider_fill() -> egui::Color32 { egui::Color32::from_rgba_unmultiplied(100, 150, 255, 120) }
 
 
