@@ -143,26 +143,33 @@ impl PixelSorterApp {
     }
 
     fn usb_present(&self) -> bool {
-        let usb_paths = ["/media/pixelsort", "/media/pi", "/media/usb", "/media", "/mnt/usb", "/mnt"];
-        
-        for base_path in &usb_paths {
-            if let Ok(entries) = std::fs::read_dir(base_path) {
-                for entry in entries.flatten() {
-                    let usb_path = entry.path();
-                    
-                    // Skip if not a directory or if it's the pi user home
-                    if !usb_path.is_dir() || usb_path.to_string_lossy().contains("/home/") {
-                        continue;
-                    }
-                    
-                    log::debug!("Checking potential USB path: {}", usb_path.display());
-                    
-                    // Check if we can write to this path (indicates writable USB)
-                    let test_file = usb_path.join(".pixelsort_usb_check");
-                    if std::fs::write(&test_file, "test").is_ok() {
-                        let _ = std::fs::remove_file(&test_file);
-                        log::info!("USB drive detected at: {}", usb_path.display());
-                        return true;
+        #[cfg(target_os = "linux")]
+        {
+            use std::process::Command;
+            
+            // Check mounted filesystems for USB drives (exfat, vfat, ntfs)
+            if let Ok(output) = Command::new("mount").output() {
+                let mount_output = String::from_utf8_lossy(&output.stdout);
+                
+                // Look for USB filesystem types mounted under /media/
+                for line in mount_output.lines() {
+                    if line.contains("/media/") && 
+                       (line.contains("exfat") || line.contains("vfat") || line.contains("ntfs")) {
+                        // Extract the mount point (between "on " and " type")
+                        if let Some(on_idx) = line.find(" on ") {
+                            if let Some(type_idx) = line.find(" type ") {
+                                let mount_point = &line[on_idx + 4..type_idx];
+                                log::info!("Found USB drive at: {}", mount_point);
+                                
+                                // Test if we can write to it
+                                let test_path = std::path::PathBuf::from(mount_point)
+                                    .join(".pixelsort_usb_check");
+                                if std::fs::write(&test_path, "test").is_ok() {
+                                    let _ = std::fs::remove_file(&test_path);
+                                    return true;
+                                }
+                            }
+                        }
                     }
                 }
             }
