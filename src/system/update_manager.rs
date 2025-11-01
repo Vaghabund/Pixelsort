@@ -79,52 +79,23 @@ impl UpdateManager {
         {
             use std::process::Command;
             
-            log::info!("Pulling updates and restarting service: {}", service_name);
+            log::info!("Starting update process for service: {}", service_name);
             
-            // Step 1: Pull updates
-            let pull_cmd = format!("cd {} && git pull origin main 2>&1", self.project_path);
+            // Spawn the background update script that will:
+            // 1. Wait for app to exit
+            // 2. Pull updates
+            // 3. Rebuild the binary
+            // 4. Restart the service
+            let update_script = format!("{}/deployment/update_and_rebuild.sh", self.project_path);
             
-            let pull_output = Command::new("sh")
-                .args(&["-c", &pull_cmd])
-                .output()?;
-            
-            let pull_result = String::from_utf8_lossy(&pull_output.stdout);
-            log::info!("Git pull output: {}", pull_result);
-            
-            if !pull_output.status.success() {
-                let error = String::from_utf8_lossy(&pull_output.stderr);
-                log::error!("Git pull failed: {}", error);
-                return Err(anyhow::anyhow!("Git pull failed: {}", error));
-            }
-            
-            // Step 2: Rebuild the application
-            log::info!("Building updated code...");
-            let build_cmd = format!("cd {} && cargo build --release 2>&1", self.project_path);
-            
-            let build_output = Command::new("sh")
-                .args(&["-c", &build_cmd])
-                .output()?;
-            
-            let build_result = String::from_utf8_lossy(&build_output.stdout);
-            log::info!("Cargo build output: {}", build_result);
-            
-            if !build_output.status.success() {
-                let error = String::from_utf8_lossy(&build_output.stderr);
-                log::error!("Cargo build failed: {}", error);
-                return Err(anyhow::anyhow!("Build failed: {}", error));
-            }
-            
-            // Step 3: Restart service
-            log::info!("Restarting service: {}", service_name);
-            let restart_cmd = format!("sudo systemctl restart {}", service_name);
-            
+            log::info!("Spawning background update script: {}", update_script);
             Command::new("sh")
-                .args(&["-c", &restart_cmd])
+                .args(&[&update_script, &self.project_path, service_name])
                 .spawn()?;
             
-            log::info!("Service restart command sent - exiting to allow restart");
+            log::info!("Background update spawned - exiting app to allow rebuild");
             
-            // Exit with success code to allow systemd to restart cleanly
+            // Exit immediately to allow the background script to rebuild
             std::process::exit(0);
         }
         
