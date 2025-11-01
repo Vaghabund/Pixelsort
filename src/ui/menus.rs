@@ -79,11 +79,15 @@ impl PixelSorterApp {
                 .collapsible(false)
                 .resizable(false)
                 .show(ctx, |ui| {
-                    ui.set_min_width(250.0);
+                    let menu_width = 350.0; 
+                    let button_height = 80.0; 
+                    let cancel_height = 60.0; 
+
+                    ui.set_min_width(menu_width);
 
                     ui.vertical_centered(|ui| {
                         // Shutdown button
-                        if ui.add_sized([250.0, 50.0], egui::Button::new("🔌 Shutdown")).clicked() {
+                        if ui.add_sized([menu_width, button_height], egui::Button::new("🔌 Shutdown")).clicked() {
                             log::info!("Shutdown requested by user");
                             if let Err(e) = SystemControl::shutdown() {
                                 log::error!("Failed to shutdown: {}", e);
@@ -96,7 +100,7 @@ impl PixelSorterApp {
                         ui.add_space(5.0);
 
                         // Reboot button
-                        if ui.add_sized([250.0, 50.0], egui::Button::new("🔄 Reboot")).clicked() {
+                        if ui.add_sized([menu_width, button_height], egui::Button::new("🔄 Reboot")).clicked() {
                             log::info!("Reboot requested by user");
                             if let Err(e) = SystemControl::reboot() {
                                 log::error!("Failed to reboot: {}", e);
@@ -109,7 +113,7 @@ impl PixelSorterApp {
                         ui.add_space(5.0);
 
                         // Exit app button
-                        if ui.add_sized([250.0, 50.0], egui::Button::new("❌ Exit App")).clicked() {
+                        if ui.add_sized([menu_width, button_height], egui::Button::new("❌ Exit App")).clicked() {
                             log::info!("Exit app requested by user");
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
@@ -117,7 +121,7 @@ impl PixelSorterApp {
                         ui.add_space(10.0);
 
                         // Cancel button
-                        if ui.add_sized([250.0, 40.0], egui::Button::new("Cancel")).clicked() {
+                        if ui.add_sized([menu_width, cancel_height], egui::Button::new("Cancel")).clicked() {
                             self.show_shutdown_menu = false;
                         }
                     });
@@ -135,7 +139,11 @@ impl PixelSorterApp {
             .collapsible(false)
             .resizable(false)
             .show(ctx, |ui| {
-                ui.set_min_width(700.0); // Doubled from 350.0
+                let menu_width = 933.0; // 700.0 * 1.33
+                let button_width = 800.0; // 600.0 * 1.33
+                let button_height = 107.0; // 80.0 * 1.33
+                
+                ui.set_min_width(menu_width);
 
                 ui.heading(egui::RichText::new("Developer Tools").size(32.0)); // Added size double
                 ui.add_space(20.0); // Doubled from 10.0
@@ -143,6 +151,7 @@ impl PixelSorterApp {
                 ui.vertical_centered(|ui| {
                     // System info section
                     ui.group(|ui| {
+                        ui.set_min_width(button_width);
                         ui.label(egui::RichText::new("System Info").strong().size(24.0)); // Added size double
                         ui.separator();
 
@@ -175,6 +184,7 @@ impl PixelSorterApp {
 
                     // Actions section
                     ui.group(|ui| {
+                        ui.set_min_width(button_width);
                         ui.label(egui::RichText::new("Actions").strong().size(24.0));
                         ui.separator();
 
@@ -184,7 +194,7 @@ impl PixelSorterApp {
                             ui.add_space(5.0);
 
                             // Restart & Update button
-                            if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Pull & Restart").size(24.0))).clicked() {
+                            if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔄 Pull & Restart").size(24.0))).clicked() {
                                 log::info!("Pull & Restart requested");
                                 self.export_message = Some("🔄 Pulling updates and restarting...".to_string());
                                 self.export_message_time = Some(Instant::now());
@@ -198,7 +208,7 @@ impl PixelSorterApp {
                             ui.add_space(5.0);
 
                             // Manual check button
-                            if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Check Now").size(24.0))).clicked() {
+                            if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔄 Check Now").size(24.0))).clicked() {
                                 log::info!("Manual update check requested");
                                 match self.update_manager.check_for_updates() {
                                     Ok(update_found) => {
@@ -224,7 +234,7 @@ impl PixelSorterApp {
                         ui.add_space(10.0); // Doubled from 5.0
 
                         // Clear session
-                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🗑 Clear Session").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                        if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🗑 Clear Session").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                             self.iteration_counter = 0;
                             self.current_session_folder = None;
                             self.export_message = Some("✓ Session cleared".to_string());
@@ -236,7 +246,7 @@ impl PixelSorterApp {
                         ui.add_space(10.0); // Doubled from 5.0
 
                         // Restart app
-                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔁 Restart App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                        if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("🔁 Restart App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                             log::info!("App restart requested");
                             self.export_message = Some("🔁 Restarting...".to_string());
                             self.export_message_time = Some(Instant::now());
@@ -247,7 +257,7 @@ impl PixelSorterApp {
                         ui.add_space(10.0); // Doubled from 5.0
 
                         // Exit app
-                        if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("❌ Exit App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                        if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("❌ Exit App").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                             log::info!("Exit app requested from dev menu");
                             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                         }
@@ -256,7 +266,7 @@ impl PixelSorterApp {
                     ui.add_space(20.0); // Doubled from 10.0
 
                     // Close button
-                    if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("Close Menu").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
+                    if ui.add_sized([button_width, button_height], egui::Button::new(egui::RichText::new("Close Menu").size(24.0))).clicked() { // Doubled from [300.0, 40.0] and added text size
                         self.show_developer_menu = false;
                     }
                 });
