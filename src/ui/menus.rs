@@ -200,10 +200,22 @@ impl PixelSorterApp {
                             // Manual check button
                             if ui.add_sized([600.0, 80.0], egui::Button::new(egui::RichText::new("🔄 Check Now").size(24.0))).clicked() {
                                 log::info!("Manual update check requested");
-                                if let Ok(_) = self.update_manager.check_for_updates() {
-                                    self.update_check_time = Some(Instant::now());
+                                match self.update_manager.check_for_updates() {
+                                    Ok(update_found) => {
+                                        if update_found {
+                                            self.export_message = Some("🆕 Update found! Restart to apply.".to_string());
+                                            log::info!("Update available!");
+                                        } else {
+                                            self.export_message = Some("✅ Already up to date".to_string());
+                                            log::info!("No updates available");
+                                        }
+                                        self.update_check_time = Some(Instant::now());
+                                    }
+                                    Err(e) => {
+                                        self.export_message = Some(format!("❌ Update check failed: {}", e));
+                                        log::error!("Update check failed: {}", e);
+                                    }
                                 }
-                                self.export_message = Some("✓ Checking for updates...".to_string());
                                 self.export_message_time = Some(Instant::now());
                                 // Don't close menu - let user see the result
                             }
