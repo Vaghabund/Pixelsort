@@ -1,11 +1,32 @@
 /// Phase-specific layout and positioning logic
-/// This file handles WHERE components appear on screen for each phase
+/// 
+/// EDIT THIS FILE TO CHANGE: Positions, padding, spacing, alignment
+/// (Colors/appearance are in styles.rs)
 use crate::PixelSorterApp;
 use crate::ui::state::Phase;
 use crate::ui::components::{circular_button, circular_button_default, vertical_slider, slider_knob_radius};
 use crate::ui::styles::{ButtonSizes, SliderSizes};
 use crate::processing::SortingAlgorithm;
 use eframe::egui;
+
+// ============================================================================
+// 📐 QUICK EDIT: LAYOUT PARAMETERS
+// Change these values to adjust spacing and positioning
+// ============================================================================
+
+// Edit Phase - Button row positioning
+const EDIT_ROW1_OFFSET: f32 = 4.0;  // Row 1 distance from bottom (in button heights + spacing)
+const EDIT_ROW2_OFFSET: f32 = 2.0;  // Row 2 distance from bottom (in button heights + spacing)
+
+// Edit Phase - Slider positioning
+const SLIDER_TOP_PADDING_MULTIPLIER: f32 = 3.0;    // Top padding (spacing * this value + knob radius)
+const SLIDER_BOTTOM_PADDING_MULTIPLIER: f32 = 5.0; // Bottom padding (spacing * this value)
+
+// USB Export button
+const USB_BUTTON_SCALE: f32 = 0.7;  // USB button size relative to normal buttons (0.7 = 70%)
+
+// Crop Phase - Button vertical centering
+const CROP_BUTTON_VERTICAL_SPACING_MULTIPLIER: f32 = 2.0; // Spacing between Cancel/Apply buttons
 
 impl PixelSorterApp {
     /// Main entry point for rendering phase-specific button overlays
@@ -65,10 +86,11 @@ impl PixelSorterApp {
         // Right side: Vertical sliders
         self.render_sliders(ctx, screen_rect, &slider_sizes, btn_sizes.spacing);
 
-        // Left side: Buttons in two rows
+        // Left side: Buttons in two rows (using offset constants)
         
         // Row 1: Algorithm and Sort Mode (top row)
-        let row1_y = screen_rect.max.y - btn_sizes.normal_radius * 4.0 - btn_sizes.spacing * 3.0;
+        let row1_y = screen_rect.max.y - btn_sizes.normal_radius * EDIT_ROW1_OFFSET 
+            - btn_sizes.spacing * (EDIT_ROW1_OFFSET - 1.0);
 
         // Algorithm button
         egui::Area::new("algo_btn")
@@ -96,7 +118,8 @@ impl PixelSorterApp {
             });
 
         // Row 2: Action buttons (bottom row) - Crop, Iterate, New
-        let row2_y = screen_rect.max.y - btn_sizes.normal_radius * 2.0 - btn_sizes.spacing;
+        let row2_y = screen_rect.max.y - btn_sizes.normal_radius * EDIT_ROW2_OFFSET 
+            - btn_sizes.spacing * (EDIT_ROW2_OFFSET - 1.0);
 
         // Crop button
         egui::Area::new("crop_btn")
@@ -145,7 +168,7 @@ impl PixelSorterApp {
                 .fixed_pos(egui::pos2(btn_sizes.spacing, export_y))
                 .order(egui::Order::Foreground)
                 .show(ctx, |ui| {
-                    if circular_button(ui, btn_sizes.normal_radius * 0.7, "USB",
+                    if circular_button(ui, btn_sizes.normal_radius * USB_BUTTON_SCALE, "USB",
                         egui::Color32::from_rgba_unmultiplied(40, 80, 40, 180)) {
                         self.show_usb_export_dialog = true;
                     }
@@ -160,7 +183,7 @@ impl PixelSorterApp {
         let sizes = ButtonSizes::standard();
 
         let left_x = sizes.spacing + sizes.normal_radius;
-        let button_vertical_spacing = sizes.spacing * 2.0;
+        let button_vertical_spacing = sizes.spacing * CROP_BUTTON_VERTICAL_SPACING_MULTIPLIER;
 
         // Center buttons vertically
         let total_height = sizes.normal_radius * 4.0 + button_vertical_spacing;
@@ -204,10 +227,10 @@ impl PixelSorterApp {
         slider_sizes: &SliderSizes,
         spacing: f32
     ) {
-        // Calculate padding to prevent handle cutoff
+        // Calculate padding to prevent handle cutoff (using constants)
         let knob_radius = slider_knob_radius(slider_sizes.width);
-        let top_padding = spacing * 3.0 + knob_radius;
-        let bottom_padding = spacing * 5.0;
+        let top_padding = spacing * SLIDER_TOP_PADDING_MULTIPLIER + knob_radius;
+        let bottom_padding = spacing * SLIDER_BOTTOM_PADDING_MULTIPLIER;
 
         let full_slider_height = screen_rect.height() - top_padding - bottom_padding;
 
