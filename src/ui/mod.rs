@@ -82,6 +82,7 @@ pub struct PixelSorterApp {
     pub show_shutdown_menu: bool,
     // Track previous USB presence to detect new mounts
     pub prev_usb_present: bool,
+    pub last_usb_check: Option<Instant>,
 
     // USB export dialog
     pub show_usb_export_dialog: bool,
@@ -144,6 +145,7 @@ impl PixelSorterApp {
             startup_check_done: false,
             show_shutdown_menu: false,
             prev_usb_present: false,
+            last_usb_check: None,
             show_usb_export_dialog: false,
             usb_export_delete_after: false,
             show_developer_menu: false,
@@ -353,13 +355,22 @@ impl PixelSorterApp {
             .show(ctx, |ui| {
                 let full_rect = ui.max_rect();
 
-                // Detect USB mount edge: if a USB is now present but wasn't before, open dialog
-                let usb_now = self.usb_present();
-                if usb_now && !self.prev_usb_present && !self.show_usb_export_dialog {
-                    log::info!("USB mounted - opening export dialog");
-                    self.show_usb_export_dialog = true;
+                // Detect USB mount edge (throttled to once per 2 seconds to avoid overhead)
+                let now = Instant::now();
+                let should_check_usb = match self.last_usb_check {
+                    None => true,
+                    Some(last) => now.duration_since(last) >= std::time::Duration::from_secs(2),
+                };
+                
+                if should_check_usb {
+                    let usb_now = self.usb_present();
+                    if usb_now && !self.prev_usb_present && !self.show_usb_export_dialog {
+                        log::info!("USB mounted - opening export dialog");
+                        self.show_usb_export_dialog = true;
+                    }
+                    self.prev_usb_present = usb_now;
+                    self.last_usb_check = Some(now);
                 }
-                self.prev_usb_present = usb_now;
 
                 self.render_viewport(ui, full_rect, ctx);
                 self.render_button_overlay(ui, ctx, full_rect);
