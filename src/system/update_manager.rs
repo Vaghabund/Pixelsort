@@ -105,8 +105,10 @@ impl UpdateManager {
                 .args(&["-c", &restart_cmd])
                 .spawn()?;
             
-            log::info!("Service restart command sent");
-            Ok(())
+            log::info!("Service restart command sent - exiting to allow restart");
+            
+            // Exit with success code to allow systemd to restart cleanly
+            std::process::exit(0);
         }
         
         #[cfg(not(target_os = "linux"))]
