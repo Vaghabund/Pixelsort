@@ -56,13 +56,3 @@ impl MenuStyle {
 pub fn button_text(text: &str, size: f32) -> egui::RichText {
     egui::RichText::new(text).size(size)
 }
-
-/// Heading text styling helper
-pub fn heading_text(text: &str, size: f32) -> egui::RichText {
-    egui::RichText::new(text).size(size).strong()
-}
-
-/// Label text styling helper
-pub fn label_text(text: &str, size: f32) -> egui::RichText {
-    egui::RichText::new(text).size(size)
-}

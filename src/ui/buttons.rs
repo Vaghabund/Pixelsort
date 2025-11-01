@@ -3,7 +3,6 @@ use crate::ui::state::Phase;
 use crate::ui::widgets::{vertical_slider, circular_button_styled, button_fill_normal};
 use crate::processing::SortingAlgorithm;
 use eframe::egui;
-use std::time::Instant;
 
 impl PixelSorterApp {
     pub fn render_button_overlay(&mut self, _ui: &mut egui::Ui, ctx: &egui::Context, screen_rect: egui::Rect) {

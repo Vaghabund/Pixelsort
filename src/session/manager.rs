@@ -104,32 +104,6 @@ impl PixelSorterApp {
         }
     }
 
-    fn copy_directory<P: AsRef<std::path::Path>>(src: P, dst: P) -> Result<(), Box<dyn std::error::Error>> {
-        let src = src.as_ref();
-        let dst = dst.as_ref();
-        
-        if !src.exists() {
-            return Err("Source directory does not exist".into());
-        }
-
-        std::fs::create_dir_all(dst)?;
-
-        for entry in std::fs::read_dir(src)? {
-            let entry = entry?;
-            let src_path = entry.path();
-            let dst_path = dst.join(entry.file_name());
-
-            if src_path.is_dir() {
-                // Recursively copy subdirectories (session folders)
-                Self::copy_directory(&src_path, &dst_path)?;
-            } else if src_path.is_file() {
-                std::fs::copy(&src_path, &dst_path)?;
-            }
-        }
-
-        Ok(())
-    }
-
     pub fn start_new_photo_session(&mut self) {
         // Reset session state
         self.iteration_counter = 0;
