@@ -1,64 +1,28 @@
 #!/bin/bash
-# Setup script for Raspberry Pi Pixel Sorter - Auto-start on boot
+# One-time setup script for Pixelsort auto-start on boot
 
-echo "=========================================="
-echo "Raspberry Pi Pixel Sorter - Setup"
-echo "=========================================="
-
-APP_DIR="/home/pixelsort/Pixelsort"
-SERVICE_FILE="pixelsort-kiosk.service"
+echo "Installing Pixelsort auto-start service..."
 
 # Check if we're in the right directory
 if [ ! -f "start_pixelsort.sh" ]; then
-    echo "Error: start_pixelsort.sh not found. Please run this script from the deployment directory."
+    echo "Error: start_pixelsort.sh not found. Run from deployment directory."
     exit 1
 fi
 
-echo "1. Making launcher script executable..."
-chmod +x start_pixelsort.sh
+# Make scripts executable
+chmod +x start_pixelsort.sh update_and_rebuild.sh
 
-echo "2. Testing launcher script permissions..."
-if [ -x "start_pixelsort.sh" ]; then
-    echo "   ✓ Launcher script is executable"
-else
-    echo "   ✗ Failed to make launcher executable"
-    exit 1
-fi
-
-echo ""
-echo "3. Installing systemd service for auto-start on boot..."
-sudo cp "$SERVICE_FILE" /etc/systemd/system/
-
-echo "4. Reloading systemd daemon..."
+# Install systemd service
+sudo cp pixelsort-kiosk.service /etc/systemd/system/
 sudo systemctl daemon-reload
-
-echo "5. Enabling service to start on boot..."
 sudo systemctl enable pixelsort-kiosk.service
 
-echo ""
-echo "=========================================="
-echo "Setup complete!"
-echo "=========================================="
-echo ""
-echo "The Pixel Sorter will now start automatically on boot."
-echo ""
-echo "=========================================="
-echo "Setting up auto-login..."
-echo "=========================================="
-echo ""
-echo "To boot directly into the app (skip desktop):"
-echo "1. Run: sudo raspi-config"
-echo "2. Go to: System Options -> Boot / Auto Login"
-echo "3. Select: Desktop Autologin"
-echo "4. Exit and reboot"
-echo ""
-echo "The app will start automatically after desktop loads."
-echo "To exit the app: Tap top-left corner 5 times within 3 seconds"
+echo "✓ Setup complete! Service will start on boot."
 echo ""
 echo "Useful commands:"
 echo "  Start now:   sudo systemctl start pixelsort-kiosk.service"
 echo "  Stop:        sudo systemctl stop pixelsort-kiosk.service"
 echo "  Status:      sudo systemctl status pixelsort-kiosk.service"
 echo "  View logs:   journalctl -u pixelsort-kiosk.service -f"
-echo "  Disable:     sudo systemctl disable pixelsort-kiosk.service"
 echo ""
+echo "Next steps: See README.md for auto-login setup (raspi-config)"

@@ -1,4 +1,82 @@
 /// Centralized UI styling constants for consistent look across the app
+use eframe::egui;
+
+// ============================================================================
+// COLOR PALETTE - Glassmorphism theme
+// ============================================================================
+
+/// Button colors (semi-transparent glassmorphism)
+pub fn button_fill_normal() -> egui::Color32 { 
+    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 38) 
+}
+
+pub fn button_fill_hover() -> egui::Color32 { 
+    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 50) 
+}
+
+pub fn button_fill_active() -> egui::Color32 { 
+    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 64) 
+}
+
+pub fn button_border() -> egui::Color32 { 
+    egui::Color32::from_rgba_unmultiplied(255, 255, 255, 30) 
+}
+
+pub const BUTTON_SHADOW_ALPHA: u8 = 60;
+
+/// Slider colors
+pub fn slider_rail_fill() -> egui::Color32 { 
+    egui::Color32::from_rgb(60, 60, 70) // Match dark button color
+}
+
+pub fn slider_fill() -> egui::Color32 { 
+    egui::Color32::from_rgba_unmultiplied(100, 150, 255, 120) 
+}
+
+pub const SLIDER_KNOB_RATIO: f32 = 0.25;
+
+// ============================================================================
+// SIZE CONSTANTS
+// ============================================================================
+
+/// Button sizes for different phases
+pub struct ButtonSizes {
+    pub large_radius: f32,   // Primary action (Take Picture)
+    pub normal_radius: f32,  // Standard buttons (Edit phase)
+    pub small_radius: f32,   // Secondary actions (Upload)
+    pub spacing: f32,        // Standard spacing between elements
+}
+
+impl ButtonSizes {
+    pub fn standard() -> Self {
+        Self {
+            large_radius: 120.0,
+            normal_radius: 100.0,
+            small_radius: 60.0,
+            spacing: 20.0,
+        }
+    }
+}
+
+/// Slider dimensions
+pub struct SliderSizes {
+    pub width: f32,
+    pub spacing_between: f32,  // Space between multiple sliders
+}
+
+impl SliderSizes {
+    pub fn standard() -> Self {
+        Self {
+            width: 200.0,
+            spacing_between: 40.0,  // Double standard spacing
+        }
+    }
+}
+
+// ============================================================================
+// MENU STYLING
+// ============================================================================
+
 /// Menu styling configuration
 pub struct MenuStyle {
     pub width: f32,

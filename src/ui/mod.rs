@@ -10,12 +10,12 @@ use crate::hardware::CameraController;
 // Module declarations
 mod state;
 mod helpers;
-mod widgets;
+mod components;  // Consolidated button + slider rendering
+mod layouts;     // Phase-specific positioning
 mod screens;
 mod indicators;
 mod menus;
 mod viewport;
-mod buttons;
 mod styles;
 mod camera;
 

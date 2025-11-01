@@ -68,26 +68,68 @@ Camera functionality is disabled on desktop; you'll see an animated test pattern
 
 ### Deployment (Harpy Device / Raspberry Pi)
 
-See the comprehensive [Deployment Guide](deployment/README.md) for full setup instructions.
+**Prerequisites:**
+```bash
+# Update system and install dependencies
+sudo apt update && sudo apt upgrade -y
+
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# Install camera tools and GUI dependencies
+sudo apt install -y rpicam-apps libgtk-3-dev libglib2.0-dev \
+    libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev libatk1.0-dev
+```
 
 **Quick Install:**
 ```bash
-# Clone and build on your Harpy device
+# Clone and build on your Pi
 git clone https://github.com/Vaghabund/Pixelsort.git
 cd Pixelsort
 cargo build --release
 
-# Set up auto-start to make it feel like a dedicated device
+# Set up auto-start on boot (one-time setup)
 cd deployment
-sudo ./setup_autostart.sh
+chmod +x setup_autostart.sh
+./setup_autostart.sh
+
+# Enable auto-login for kiosk mode
+sudo raspi-config
+# Navigate to: System Options → Boot / Auto Login → Desktop Autologin
+# Reboot when done
 ```
 
-**Manual Run:**
+**Deployment Scripts:**
+
+The `deployment/` folder contains 3 essential scripts:
+
+1. **setup_autostart.sh** (27 lines) - One-time installer
+   - Makes scripts executable
+   - Installs systemd service for auto-start on boot
+   - Run once during initial Pi setup
+   
+2. **start_pixelsort.sh** (60 lines) - Runtime launcher
+   - Waits for X11 display server (adaptive polling, up to 30s)
+   - Starts the Pixelsort app in fullscreen
+   - Called automatically by systemd on boot
+   
+3. **update_and_rebuild.sh** (47 lines) - Background updater
+   - Pulls latest code from GitHub
+   - Rebuilds app (5-10 minutes)
+   - Restarts service with error recovery
+   - Triggered by "Pull & Restart" button in Developer menu
+
+**Manual Control:**
 ```bash
-./deployment/run_pixelsort.sh
-```
+# Start/stop service
+sudo systemctl start pixelsort-kiosk.service
+sudo systemctl stop pixelsort-kiosk.service
 
-The launcher script automatically checks for updates from GitHub before starting.
+# Check status and logs
+sudo systemctl status pixelsort-kiosk.service
+journalctl -u pixelsort-kiosk.service -f
+```
 
 ### Cross-Compilation (Recommended)
 
@@ -103,7 +145,7 @@ cross build --release --target aarch64-unknown-linux-gnu
 
 The binary will be at: `target/aarch64-unknown-linux-gnu/release/pixelsort-pi`
 
-For Pi deployment with auto-update and kiosk mode, see the [Deployment Guide](deployment/README.md).
+Transfer to your Pi and run the setup script to enable auto-start.
 
 ## UI Flow
 
@@ -117,27 +159,97 @@ Notes
 
 ## Project Structure
 
+The codebase is organized into domain-specific modules:
+
+### Core Application
+- **main.rs** - Application entry point, window setup, kiosk mode configuration, icon loading
+
+### Hardware Layer (`src/hardware/`)
+- **camera_controller.rs** - Raspberry Pi camera integration via rpicam-vid/rpicam-still
+  - 30 FPS streaming with frame buffering
+  - Snapshot capture with test pattern fallback for desktop
+- **ups_monitor.rs** - Battery monitoring for UPS HAT (optional hardware)
+  - I2C communication for battery status
+  - Auto-shutdown on low battery
+
+### Processing Layer (`src/processing/`)
+- **pixel_sorter.rs** - Core sorting algorithms and pixel manipulation
+  - Horizontal/Vertical/Diagonal sorting
+  - Threshold-based segment detection
+  - Hue-based tinting
+- **image_ops.rs** - High-level image operations
+  - Image loading and saving
+  - Tint application and blending
+  - Integration between sorting and image data
+- **crop.rs** - Crop rectangle manipulation and application
+  - Draggable crop handles
+  - Apply crop with pixel sorting
+- **texture.rs** - egui texture management for GPU rendering
+  - Efficient texture updates for 30 FPS preview
+  - Memory optimization for Pi hardware
+
+### Session Management (`src/session/`)
+- **manager.rs** - Save/load workflow and USB export
+  - Auto-incrementing edit numbers (edit_001, edit_002, etc.)
+  - Session directories by timestamp
+  - USB drive detection and bulk export
+  - Cross-platform directory operations
+
+### System Control (`src/system/`)
+- **update_manager.rs** - Git-based update checking and service restart
+  - Checks for updates from GitHub origin/main
+  - Spawns background rebuild script
+  - Fallback mechanisms for error recovery
+- **control.rs** - System-level controls
+  - Application exit handling
+  - 5-tap corner detection for touch exit
+
+### User Interface (`src/ui/`)
+- **mod.rs** - Main UI coordinator and phase management
+  - Three-phase workflow (Input → Edit → Crop)
+  - Phase transitions and state management
+- **state.rs** - UI state container
+  - Current phase tracking
+  - Image state (original, processed, cropped)
+  - Slider values, algorithm selection
+- **screens.rs** - Phase-specific screen rendering
+  - Input screen (camera preview, capture button)
+  - Edit screen (image display, controls)
+  - Crop screen (draggable handles)
+  - Sleep screen (dim logo after 5 min idle)
+- **buttons.rs** - Button rendering and interaction
+  - Large circular touch buttons (100-120px radius)
+  - Hover/press states with alpha blending
+- **widgets.rs** - Custom UI widgets
+  - Vertical sliders with oversized handles
+  - Slider rail backgrounds and styling
+- **menus.rs** - Popup menu system
+  - Power menu (Exit/Restart)
+  - Developer menu (Update/Restart)
+  - USB export menu
+- **styles.rs** - Centralized styling configuration
+  - MenuStyle classes for consistent sizing
+  - Color schemes and alpha values
+  - Button text formatting
+- **helpers.rs** - UI utility functions
+  - Layout helpers
+  - Common UI patterns
+- **indicators.rs** - Status indicators and overlays
+  - Battery level display
+  - Export status popups
+- **viewport.rs** - Window and viewport management
+  - Fullscreen configuration
+  - Resolution handling (1920x1080)
+  - Cursor hiding for kiosk mode
+- **camera.rs** - Camera UI integration
+  - Capture button logic
+  - Phase transition after capture
+  - Links UI to camera_controller
+
+### Assets & Output
 ```
-src/
-  main.rs               # App entry, window config, kiosk mode setup
-  ui.rs                 # Three-phase UI (Input/Edit/Crop), touch controls
-  pixel_sorter.rs       # Sorting algorithms + threshold/hue processing
-  camera_controller.rs  # rpicam streaming (30 FPS) and snapshot capture
-  session.rs            # Auto-save workflow, USB export
-  crop.rs               # Crop rectangle logic and application
-  image_ops.rs          # Image loading, tint blending, sort integration
-  camera.rs             # Camera UI integration
-  texture.rs            # egui texture helpers for 30 FPS optimization
-
-deployment/
-  run_pixelsort.sh      # Auto-update launcher (checks git, rebuilds)
-  run_pixelsort.ps1     # Windows version for development
-  setup_autostart.sh    # Systemd service installer
-  pixelsort-kiosk.service # Systemd unit file
-  README.md             # Complete deployment guide
-
 assets/
-  Harpy_ICON.png        # Application icon (splash + sleep screens)
+  Harpy_ICON.png        # App icon (splash screen + sleep mode)
 
 sorted_images/          # Output directory (git-ignored)
   session_YYYYMMDD_HHMMSS/
@@ -145,6 +257,23 @@ sorted_images/          # Output directory (git-ignored)
     edit_002_vertical.png
     ...
 ```
+
+### Deployment Scripts
+```
+deployment/
+  setup_autostart.sh         # One-time systemd service installer
+  start_pixelsort.sh         # Runtime launcher (X11 wait + app start)
+  update_and_rebuild.sh      # Background updater (git pull + rebuild)
+  pixelsort-kiosk.service    # Systemd unit file
+```
+
+**Key Architecture Decisions:**
+- **Modular design** - Each domain (hardware, processing, session, system, UI) is isolated
+- **Immediate mode GUI** - egui renders UI from scratch each frame (no retained state)
+- **Async camera** - tokio runtime handles camera streaming without blocking UI
+- **Session-based workflow** - Each session is timestamped, edits auto-increment
+- **Touch-first** - All controls designed for fat-finger interaction (100px+ targets)
+- **Pi-optimized** - 30 FPS target, texture reuse, efficient memory management
 
 ## Kiosk Mode Details
 
@@ -165,14 +294,73 @@ When running on the Harpy device (Raspberry Pi), the app operates in kiosk mode 
 - **No camera on desktop**: App shows animated test pattern; capture button has no effect (this is normal)
 - **Window size**: Runs at 1920x1080 on Pi; resizable on desktop for testing
 
-### Harpy Device (Raspberry Pi)
-- **Camera not working**: Install rpicam tools with `sudo apt install -y rpicam-apps`
-- **USB export**: Requires a mounted drive under `/media/*` or `/mnt/*`; copies entire `sorted_images/` directory
-- **Resolution issues**: App forces 1920x1080 with zoom factor 1.0 to disable DPI scaling
-- **Auto-start not working**: Check systemd service status with `systemctl --user status pixelsort-kiosk`
-- **Can't exit**: Use ESC key or 5 rapid taps in top-left corner
+### Raspberry Pi Deployment
+- **Camera not working**: 
+  ```bash
+  # Install rpicam tools
+  sudo apt install -y rpicam-apps
+  
+  # Test camera
+  rpicam-hello
+  vcgencmd get_camera
+  ```
 
-For more troubleshooting, see the [Deployment Guide](deployment/README.md).
+- **App won't start on boot**:
+  ```bash
+  # Check service status
+  systemctl status pixelsort-kiosk.service
+  
+  # View logs
+  journalctl -u pixelsort-kiosk.service -n 50
+  
+  # Test launcher manually
+  cd ~/Pixelsort/deployment
+  ./start_pixelsort.sh
+  ```
+
+- **Display resolution issues**:
+  ```bash
+  # Force resolution in /boot/config.txt
+  sudo nano /boot/config.txt
+  
+  # Add these lines:
+  hdmi_force_hotplug=1
+  hdmi_group=2
+  hdmi_mode=87
+  hdmi_cvt=1920 1080 60 6 0 0 0
+  ```
+
+- **Build fails**:
+  ```bash
+  # Clean and rebuild
+  cargo clean
+  cargo build --release
+  ```
+
+- **Permission issues**:
+  ```bash
+  # Fix ownership
+  sudo chown -R $USER:$USER ~/Pixelsort
+  ```
+
+- **USB export not detecting**:
+  - USB drives must be mounted under `/media/*` or `/mnt/*`
+  - Wait a few seconds after plugging in USB for auto-detection
+  - Check mount status: `mount | grep media`
+
+- **Can't exit app**: Use ESC key or tap top-left corner 5 times rapidly (within 3 seconds)
+
+### Uninstall
+```bash
+# Stop and disable service
+sudo systemctl stop pixelsort-kiosk.service
+sudo systemctl disable pixelsort-kiosk.service
+sudo rm /etc/systemd/system/pixelsort-kiosk.service
+sudo systemctl daemon-reload
+
+# Remove application
+rm -rf ~/Pixelsort
+```
 
 ## License
 
@@ -191,8 +379,7 @@ Issues and PRs are welcome! Please ensure your code:
 
 ## Links
 
-- [Deployment Guide](deployment/README.md) - Complete setup instructions for Raspberry Pi
-- [UPS Setup Guide](docs/UPS_SETUP.md) - Hardware setup for battery monitoring
+- [UPS Setup Guide](docs/UPS_SETUP.md) - Hardware setup for battery monitoring (optional)
 - [Battery Display Documentation](docs/BATTERY_DISPLAY.md) - Battery monitoring feature details
 - [Copilot Instructions](.github/copilot-instructions.md) - Project architecture and development guidelines
 - [GitHub Repository](https://github.com/Vaghabund/Pixelsort)
