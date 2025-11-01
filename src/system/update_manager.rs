@@ -81,7 +81,7 @@ impl UpdateManager {
             
             log::info!("Pulling updates and restarting service: {}", service_name);
             
-            // First pull updates
+            // Step 1: Pull updates
             let pull_cmd = format!("cd {} && git pull origin main 2>&1", self.project_path);
             
             let pull_output = Command::new("sh")
@@ -97,7 +97,24 @@ impl UpdateManager {
                 return Err(anyhow::anyhow!("Git pull failed: {}", error));
             }
             
-            // Then restart service
+            // Step 2: Rebuild the application
+            log::info!("Building updated code...");
+            let build_cmd = format!("cd {} && cargo build --release 2>&1", self.project_path);
+            
+            let build_output = Command::new("sh")
+                .args(&["-c", &build_cmd])
+                .output()?;
+            
+            let build_result = String::from_utf8_lossy(&build_output.stdout);
+            log::info!("Cargo build output: {}", build_result);
+            
+            if !build_output.status.success() {
+                let error = String::from_utf8_lossy(&build_output.stderr);
+                log::error!("Cargo build failed: {}", error);
+                return Err(anyhow::anyhow!("Build failed: {}", error));
+            }
+            
+            // Step 3: Restart service
             log::info!("Restarting service: {}", service_name);
             let restart_cmd = format!("sudo systemctl restart {}", service_name);
             
