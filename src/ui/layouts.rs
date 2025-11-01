@@ -24,7 +24,7 @@ const EDIT_BUTTON_COLUMNS: f32 = 3.0;  // Number of button columns (for New butt
 // Edit Phase - Slider positioning
 const SLIDER_TOP_PADDING_MULTIPLIER: f32 = 3.0;    // Top padding (spacing * this value + knob radius)
 const SLIDER_BOTTOM_PADDING_MULTIPLIER: f32 = 5.0; // Bottom padding (spacing * this value)
-const SLIDER_SPACING_BETWEEN: f32 = 20.0;          // Horizontal space between Threshold and Hue sliders
+const SLIDER_SPACING_BETWEEN: f32 = 5.0;          // Horizontal space between Threshold and Hue sliders
 
 // Slider value ranges
 const THRESHOLD_MIN: f32 = 0.0;    // Minimum threshold value

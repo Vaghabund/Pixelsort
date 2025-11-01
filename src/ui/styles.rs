@@ -23,12 +23,12 @@ const BUTTON_BORDER_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 30);   // rgba(255,
 const BUTTON_SHADOW_RGBA: (u8, u8, u8, u8) = (0, 0, 0, 60);         // rgba(0, 0, 0, 0.24) - Shadow color
 
 // Specific button colors
-const BUTTON_DARK_RGB: (u8, u8, u8) = (60, 60, 70);              // rgba(60, 60, 70, 1) - Dark buttons (Crop/Iterate/New)
+const BUTTON_DARK_RGBA: (u8, u8, u8, u8) = (60, 60, 70, 120);              // rgba(60, 60, 70, 0.49) - Dark buttons (Crop/Iterate/New)
 const BUTTON_GREEN_RGBA: (u8, u8, u8, u8) = (40, 80, 40, 180);   // rgba(40, 80, 40, 0.71) - Green buttons (USB/Apply)
 const BUTTON_RED_RGBA: (u8, u8, u8, u8) = (80, 40, 40, 180);     // rgba(80, 40, 40, 0.71) - Red buttons (Cancel)
 
 // Slider colors
-const SLIDER_RAIL_RGB: (u8, u8, u8) = (60, 60, 70);                 // rgba(60, 60, 70, 1) - Rail background
+const SLIDER_RAIL_RGBA: (u8, u8, u8, u8) = (60, 60, 70, 30);                 // rgba(60, 60, 70, 1) - Rail background
 const SLIDER_FILL_RGBA: (u8, u8, u8, u8) = (100, 150, 255, 120);    // rgba(100, 150, 255, 0.47) - Fill bar color
 const SLIDER_KNOB_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 230);    // rgba(255, 255, 255, 0.9) - Knob color
 
@@ -83,8 +83,8 @@ pub const BUTTON_SHADOW_ALPHA: u8 = BUTTON_SHADOW_RGBA.3;
 
 /// Specific button colors
 pub fn button_dark() -> egui::Color32 {
-    let (r, g, b) = BUTTON_DARK_RGB;
-    egui::Color32::from_rgb(r, g, b)
+    let (r, g, b, a) = BUTTON_DARK_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 pub fn button_green() -> egui::Color32 {
@@ -99,8 +99,8 @@ pub fn button_red() -> egui::Color32 {
 
 /// Slider colors
 pub fn slider_rail_fill() -> egui::Color32 { 
-    let (r, g, b) = SLIDER_RAIL_RGB;
-    egui::Color32::from_rgb(r, g, b)
+    let (r, g, b, a) = SLIDER_RAIL_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 pub fn slider_fill() -> egui::Color32 { 
