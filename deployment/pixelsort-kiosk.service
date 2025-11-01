@@ -7,11 +7,9 @@ Wants=network.target
 Type=simple
 User=pixelsort
 WorkingDirectory=/home/pixelsort/Pixelsort
-# Wait for X11 to be ready (adaptive, not fixed delay)
-ExecStartPre=/bin/chmod +x /home/pixelsort/Pixelsort/deployment/wait_for_x11.sh
-ExecStartPre=/home/pixelsort/Pixelsort/deployment/wait_for_x11.sh
-ExecStartPre=/bin/chmod +x /home/pixelsort/Pixelsort/deployment/run_pixelsort.sh
-ExecStart=/home/pixelsort/Pixelsort/deployment/run_pixelsort.sh
+# Unified launcher: waits for X11, then starts app
+ExecStartPre=/bin/chmod +x /home/pixelsort/Pixelsort/deployment/start_pixelsort.sh
+ExecStart=/home/pixelsort/Pixelsort/deployment/start_pixelsort.sh
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

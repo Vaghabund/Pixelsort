@@ -66,6 +66,12 @@ chmod +x setup_autostart.sh
 ./setup_autostart.sh
 ```
 
+This installs a systemd service that:
+- Waits for X11 display server to be ready (adaptive, not fixed delay)
+- Starts the app in fullscreen kiosk mode
+- Automatically restarts if the app crashes
+- Checks for updates in the background
+
 ### 2. Enable Auto-Login
 
 ```bash
@@ -81,17 +87,7 @@ Navigate to:
 
 The app will now start automatically on boot in fullscreen kiosk mode.
 
----
-
-## Auto-Update on Launch
-
-The deployment includes an auto-update launcher that:
-1. Checks for git updates from GitHub
-2. Pulls latest changes if available
-3. Rebuilds only changed files
-4. Launches the app
-
-The systemd service uses `run_pixelsort.sh` which handles this automatically.
+**Note:** The old `run_pixelsort.sh` and `wait_for_x11.sh` scripts have been consolidated into `start_pixelsort.sh` for simplicity.
 
 ---
 
@@ -134,7 +130,7 @@ sudo systemctl enable pixelsort-kiosk.service
 | File/Folder | Location | Purpose |
 |------------|----------|---------|
 | Application binary | `/home/pixelsort/Pixelsort/target/release/pixelsort-pi` | Compiled executable |
-| Launcher script | `/home/pixelsort/Pixelsort/deployment/run_pixelsort.sh` | Auto-update wrapper |
+| Unified launcher | `/home/pixelsort/Pixelsort/deployment/start_pixelsort.sh` | Waits for X11 & starts app |
 | Systemd service | `/etc/systemd/system/pixelsort-kiosk.service` | Boot service |
 | Sorted images | `/home/pixelsort/Pixelsort/sorted_images/` | Output directory |
 | Application icon | `/home/pixelsort/Pixelsort/assets/Harpy_ICON.png` | UI assets |

@@ -9,16 +9,16 @@ APP_DIR="/home/pixelsort/Pixelsort"
 SERVICE_FILE="pixelsort-kiosk.service"
 
 # Check if we're in the right directory
-if [ ! -f "run_pixelsort.sh" ]; then
-    echo "Error: run_pixelsort.sh not found. Please run this script from the Pixelsort directory."
+if [ ! -f "start_pixelsort.sh" ]; then
+    echo "Error: start_pixelsort.sh not found. Please run this script from the deployment directory."
     exit 1
 fi
 
 echo "1. Making launcher script executable..."
-chmod +x run_pixelsort.sh
+chmod +x start_pixelsort.sh
 
 echo "2. Testing launcher script permissions..."
-if [ -x "run_pixelsort.sh" ]; then
+if [ -x "start_pixelsort.sh" ]; then
     echo "   ✓ Launcher script is executable"
 else
     echo "   ✗ Failed to make launcher executable"
