@@ -45,10 +45,12 @@ impl PixelSorterApp {
             "/mnt",
         ];
 
+        log::info!("Searching for USB drives...");
         let mut usb_found = false;
         let mut last_error = String::new();
         
         for base_path in &usb_paths {
+            log::debug!("Checking base path: {}", base_path);
             if let Ok(entries) = std::fs::read_dir(base_path) {
                 for entry in entries.flatten() {
                     let usb_path = entry.path();
@@ -58,10 +60,14 @@ impl PixelSorterApp {
                         continue;
                     }
                     
+                    log::debug!("Found potential USB mount: {}", usb_path.display());
+                    
                     // Check if we can write to this path (indicates it's a writable USB)
                     let test_file = usb_path.join(".pixelsort_test");
                     if std::fs::write(&test_file, "test").is_ok() {
                         let _ = std::fs::remove_file(&test_file);
+                        
+                        log::info!("Writable USB found at: {}", usb_path.display());
                         
                         // Try to copy sorted_images folder to USB
                         let dest_path = usb_path.join("pixelsort_export");
@@ -79,16 +85,21 @@ impl PixelSorterApp {
                                 log::warn!("Failed to copy to {}: {}", dest_path.display(), e);
                             }
                         }
+                    } else {
+                        log::debug!("Cannot write to: {}", usb_path.display());
                     }
                 }
                 if usb_found {
                     break;
                 }
+            } else {
+                log::debug!("Cannot read directory: {}", base_path);
             }
         }
         
         if !usb_found {
             if last_error.is_empty() {
+                log::warn!("No writable USB drive found in any mount point");
                 return Err("No writable USB drive found".into());
             } else {
                 return Err(last_error.into());

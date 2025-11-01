@@ -144,6 +144,7 @@ impl PixelSorterApp {
 
     fn usb_present(&self) -> bool {
         let usb_paths = ["/media/pixelsort", "/media/pi", "/media/usb", "/media", "/mnt/usb", "/mnt"];
+        
         for base_path in &usb_paths {
             if let Ok(entries) = std::fs::read_dir(base_path) {
                 for entry in entries.flatten() {
@@ -154,15 +155,19 @@ impl PixelSorterApp {
                         continue;
                     }
                     
+                    log::debug!("Checking potential USB path: {}", usb_path.display());
+                    
                     // Check if we can write to this path (indicates writable USB)
                     let test_file = usb_path.join(".pixelsort_usb_check");
                     if std::fs::write(&test_file, "test").is_ok() {
                         let _ = std::fs::remove_file(&test_file);
+                        log::info!("USB drive detected at: {}", usb_path.display());
                         return true;
                     }
                 }
             }
         }
+        
         false
     }
 }
