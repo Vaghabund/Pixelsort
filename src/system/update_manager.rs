@@ -69,9 +69,8 @@ impl UpdateManager {
         #[cfg(not(target_os = "linux"))]
         {
             log::warn!("Update checking only available on Linux");
+            Ok(false)
         }
-        
-        Ok(false)
     }
     
     /// Pull updates and restart the systemd service
