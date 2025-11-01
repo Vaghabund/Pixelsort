@@ -20,7 +20,6 @@ const BUTTON_BORDER_WIDTH: f32 = 1.0;      // Border thickness (pixels)
 // Slider behavior
 const SLIDER_RAIL_SHRINK_RATIO: f32 = 0.25; // Rail width relative to slider width (0.25 = 25% on each side)
 const SLIDER_KNOB_BORDER_RATIO: f32 = 0.13;  // Knob border width relative to radius (0.13 = 13%)
-const SLIDER_KNOB_OPACITY: u8 = 230;         // Knob opacity (0-255, 230 = ~90%)
 
 // Value bubble
 const BUBBLE_FONT_SIZE: f32 = 18.0;          // Font size for value display
@@ -28,7 +27,6 @@ const BUBBLE_PADDING_X: f32 = 20.0;          // Horizontal padding inside bubble
 const BUBBLE_PADDING_Y: f32 = 12.0;          // Vertical padding inside bubble
 const BUBBLE_OFFSET_X: f32 = 12.0;           // Distance from slider (pixels)
 const BUBBLE_CORNER_RADIUS: f32 = 6.0;       // Bubble corner rounding
-const BUBBLE_OPACITY: u8 = 230;              // Bubble background opacity (0-255)
 
 // Slider label
 const LABEL_FONT_SIZE: f32 = 18.0;           // Font size for slider label
@@ -36,8 +34,6 @@ const LABEL_OFFSET_Y: f32 = 40.0;            // Distance below slider (pixels)
 const LABEL_BG_PADDING_X: f32 = 4.0;         // Label background padding X
 const LABEL_BG_PADDING_Y: f32 = 2.0;         // Label background padding Y
 const LABEL_BG_CORNER_RADIUS: f32 = 3.0;     // Label background corner rounding
-const LABEL_BG_OPACITY: u8 = 180;            // Label background opacity
-const LABEL_TEXT_OPACITY: u8 = 204;          // Label text opacity (0-255, 204 = ~80%)
 
 // ============================================================================
 // CIRCULAR BUTTON COMPONENT
@@ -196,7 +192,7 @@ pub fn vertical_slider(
         painter.circle(
             knob_center,
             knob_radius,
-            egui::Color32::from_rgba_unmultiplied(255, 255, 255, SLIDER_KNOB_OPACITY),
+            slider_knob_fill(),
             egui::Stroke::new(stroke_width, button_border()),
         );
 
@@ -229,8 +225,8 @@ fn render_value_bubble(ui: &egui::Ui, knob_y: f32, slider_left: f32, value: f32)
     layer_painter.rect(
         bubble_rect,
         BUBBLE_CORNER_RADIUS,
-        egui::Color32::from_rgba_unmultiplied(0, 0, 0, BUBBLE_OPACITY),
-        egui::Stroke::new(1.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 50)),
+        bubble_background(),
+        egui::Stroke::new(1.0, bubble_border()),
     );
 
     let text_pos = bubble_rect.center() - galley.size() / 2.0;
@@ -243,7 +239,7 @@ fn render_slider_label(painter: &egui::Painter, rect: egui::Rect, label: &str) {
     let label_galley = painter.layout_no_wrap(
         label.to_string(), 
         label_font, 
-        egui::Color32::from_rgba_unmultiplied(255, 255, 255, LABEL_TEXT_OPACITY)
+        label_text()
     );
     
     let label_pos = egui::pos2(
@@ -260,7 +256,7 @@ fn render_slider_label(painter: &egui::Painter, rect: egui::Rect, label: &str) {
     painter.rect(
         label_bg_rect,
         LABEL_BG_CORNER_RADIUS,
-        egui::Color32::from_black_alpha(LABEL_BG_OPACITY),
+        label_background(),
         egui::Stroke::NONE,
     );
     

@@ -6,24 +6,39 @@ use eframe::egui;
 // ============================================================================
 // 🎨 QUICK EDIT: COLOR PALETTE
 // Change these values to customize the app's appearance
+// Format: (Red, Green, Blue, Alpha) where each value is 0-255
+// 
+// 💡 HOW TO CHANGE COLORS:
+//    1. Click the colored square next to the rgba() value
+//    2. VS Code's color picker will open - adjust visually
+//    3. The rgba values will update automatically in the comment
+//    4. Copy the new values into the RGBA tuple
 // ============================================================================
 
-// Button colors (RGBA: Red, Green, Blue, Alpha 0-255)
-const BUTTON_NORMAL_ALPHA: u8 = 38;   // Transparency when idle
-const BUTTON_HOVER_ALPHA: u8 = 50;    // Transparency when hovering
-const BUTTON_ACTIVE_ALPHA: u8 = 64;   // Transparency when pressed
-const BUTTON_BORDER_ALPHA: u8 = 30;   // Border transparency
-const BUTTON_SHADOW_ALPHA_VAL: u8 = 60; // Shadow darkness
+// Button glassmorphism colors (white with varying transparency)
+const BUTTON_NORMAL_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 38);   // rgba(255, 255, 255, 0.15) - Idle state
+const BUTTON_HOVER_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 50);    // rgba(255, 255, 255, 0.2) - Hover state
+const BUTTON_ACTIVE_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 64);   // rgba(255, 255, 255, 0.25) - Pressed state
+const BUTTON_BORDER_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 30);   // rgba(255, 255, 255, 0.12) - Border color
+const BUTTON_SHADOW_RGBA: (u8, u8, u8, u8) = (0, 0, 0, 60);         // rgba(0, 0, 0, 0.24) - Shadow color
 
-// Slider colors (RGB: Red, Green, Blue)
-const SLIDER_RAIL_R: u8 = 60;         // Rail background red
-const SLIDER_RAIL_G: u8 = 60;         // Rail background green
-const SLIDER_RAIL_B: u8 = 70;         // Rail background blue
+// Specific button colors
+const BUTTON_DARK_RGB: (u8, u8, u8) = (60, 60, 70);              // rgba(60, 60, 70, 1) - Dark buttons (Crop/Iterate/New)
+const BUTTON_GREEN_RGBA: (u8, u8, u8, u8) = (40, 80, 40, 180);   // rgba(40, 80, 40, 0.71) - Green buttons (USB/Apply)
+const BUTTON_RED_RGBA: (u8, u8, u8, u8) = (80, 40, 40, 180);     // rgba(80, 40, 40, 0.71) - Red buttons (Cancel)
 
-const SLIDER_FILL_R: u8 = 100;        // Fill bar red
-const SLIDER_FILL_G: u8 = 150;        // Fill bar green
-const SLIDER_FILL_B: u8 = 255;        // Fill bar blue
-const SLIDER_FILL_ALPHA: u8 = 120;    // Fill bar transparency
+// Slider colors
+const SLIDER_RAIL_RGB: (u8, u8, u8) = (60, 60, 70);                 // rgba(60, 60, 70, 1) - Rail background
+const SLIDER_FILL_RGBA: (u8, u8, u8, u8) = (100, 150, 255, 120);    // rgba(100, 150, 255, 0.47) - Fill bar color
+const SLIDER_KNOB_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 230);    // rgba(255, 255, 255, 0.9) - Knob color
+
+// Value bubble colors (shown when dragging slider)
+const BUBBLE_BG_RGBA: (u8, u8, u8, u8) = (0, 0, 0, 230);            // rgba(0, 0, 0, 0.9) - Bubble background
+const BUBBLE_BORDER_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 50);   // rgba(255, 255, 255, 0.2) - Bubble border
+
+// Slider label colors
+const LABEL_TEXT_RGBA: (u8, u8, u8, u8) = (255, 255, 255, 204);     // rgba(255, 255, 255, 0.8) - Label text
+const LABEL_BG_RGBA: (u8, u8, u8, u8) = (0, 0, 0, 180);             // rgba(0, 0, 0, 0.71) - Label background
 
 const SLIDER_KNOB_RATIO_VAL: f32 = 0.25; // Knob size relative to slider width (0.25 = 25%)
 
@@ -45,30 +60,79 @@ const SLIDER_WIDTH: f32 = 200.0;          // Width of slider tracks
 
 /// Button colors (semi-transparent glassmorphism)
 pub fn button_fill_normal() -> egui::Color32 { 
-    egui::Color32::from_rgba_unmultiplied(255, 255, 255, BUTTON_NORMAL_ALPHA) 
+    let (r, g, b, a) = BUTTON_NORMAL_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 pub fn button_fill_hover() -> egui::Color32 { 
-    egui::Color32::from_rgba_unmultiplied(255, 255, 255, BUTTON_HOVER_ALPHA) 
+    let (r, g, b, a) = BUTTON_HOVER_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 pub fn button_fill_active() -> egui::Color32 { 
-    egui::Color32::from_rgba_unmultiplied(255, 255, 255, BUTTON_ACTIVE_ALPHA) 
+    let (r, g, b, a) = BUTTON_ACTIVE_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 pub fn button_border() -> egui::Color32 { 
-    egui::Color32::from_rgba_unmultiplied(255, 255, 255, BUTTON_BORDER_ALPHA) 
+    let (r, g, b, a) = BUTTON_BORDER_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
-pub const BUTTON_SHADOW_ALPHA: u8 = BUTTON_SHADOW_ALPHA_VAL;
+pub const BUTTON_SHADOW_ALPHA: u8 = BUTTON_SHADOW_RGBA.3;
+
+/// Specific button colors
+pub fn button_dark() -> egui::Color32 {
+    let (r, g, b) = BUTTON_DARK_RGB;
+    egui::Color32::from_rgb(r, g, b)
+}
+
+pub fn button_green() -> egui::Color32 {
+    let (r, g, b, a) = BUTTON_GREEN_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+}
+
+pub fn button_red() -> egui::Color32 {
+    let (r, g, b, a) = BUTTON_RED_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+}
 
 /// Slider colors
 pub fn slider_rail_fill() -> egui::Color32 { 
-    egui::Color32::from_rgb(SLIDER_RAIL_R, SLIDER_RAIL_G, SLIDER_RAIL_B)
+    let (r, g, b) = SLIDER_RAIL_RGB;
+    egui::Color32::from_rgb(r, g, b)
 }
 
 pub fn slider_fill() -> egui::Color32 { 
-    egui::Color32::from_rgba_unmultiplied(SLIDER_FILL_R, SLIDER_FILL_G, SLIDER_FILL_B, SLIDER_FILL_ALPHA) 
+    let (r, g, b, a) = SLIDER_FILL_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+}
+
+pub fn slider_knob_fill() -> egui::Color32 {
+    let (r, g, b, a) = SLIDER_KNOB_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+}
+
+/// Value bubble colors (displayed when dragging slider)
+pub fn bubble_background() -> egui::Color32 {
+    let (r, g, b, a) = BUBBLE_BG_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+}
+
+pub fn bubble_border() -> egui::Color32 {
+    let (r, g, b, a) = BUBBLE_BORDER_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+}
+
+/// Slider label colors
+pub fn label_text() -> egui::Color32 {
+    let (r, g, b, a) = LABEL_TEXT_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
+}
+
+pub fn label_background() -> egui::Color32 {
+    let (r, g, b, a) = LABEL_BG_RGBA;
+    egui::Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 pub const SLIDER_KNOB_RATIO: f32 = SLIDER_KNOB_RATIO_VAL;

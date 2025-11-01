@@ -5,7 +5,7 @@
 use crate::PixelSorterApp;
 use crate::ui::state::Phase;
 use crate::ui::components::{circular_button, circular_button_default, vertical_slider, slider_knob_radius};
-use crate::ui::styles::{ButtonSizes, SliderSizes};
+use crate::ui::styles::{ButtonSizes, SliderSizes, button_dark, button_green, button_red};
 use crate::processing::SortingAlgorithm;
 use eframe::egui;
 
@@ -24,7 +24,7 @@ const EDIT_BUTTON_COLUMNS: f32 = 3.0;  // Number of button columns (for New butt
 // Edit Phase - Slider positioning
 const SLIDER_TOP_PADDING_MULTIPLIER: f32 = 3.0;    // Top padding (spacing * this value + knob radius)
 const SLIDER_BOTTOM_PADDING_MULTIPLIER: f32 = 5.0; // Bottom padding (spacing * this value)
-const SLIDER_SPACING_BETWEEN: f32 = 40.0;          // Horizontal space between Threshold and Hue sliders
+const SLIDER_SPACING_BETWEEN: f32 = 20.0;          // Horizontal space between Threshold and Hue sliders
 
 // Slider value ranges
 const THRESHOLD_MIN: f32 = 0.0;    // Minimum threshold value
@@ -139,8 +139,7 @@ impl PixelSorterApp {
             .fixed_pos(egui::pos2(btn_sizes.spacing, row2_y))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if circular_button(ui, btn_sizes.normal_radius, "Crop",
-                    egui::Color32::from_rgb(60, 60, 70)) {
+                if circular_button(ui, btn_sizes.normal_radius, "Crop", button_dark()) {
                     self.current_phase = Phase::Crop;
                     self.crop_rect = None;
                 }
@@ -154,8 +153,7 @@ impl PixelSorterApp {
             ))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if circular_button(ui, btn_sizes.normal_radius, "Iterate",
-                    egui::Color32::from_rgb(60, 60, 70)) {
+                if circular_button(ui, btn_sizes.normal_radius, "Iterate", button_dark()) {
                     self.save_and_continue_iteration(ctx);
                 }
             });
@@ -168,8 +166,7 @@ impl PixelSorterApp {
             ))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if circular_button(ui, btn_sizes.normal_radius, "New",
-                    egui::Color32::from_rgb(60, 60, 70)) {
+                if circular_button(ui, btn_sizes.normal_radius, "New", button_dark()) {
                     self.start_new_photo_session();
                 }
             });
@@ -181,8 +178,7 @@ impl PixelSorterApp {
                 .fixed_pos(egui::pos2(btn_sizes.spacing, export_y))
                 .order(egui::Order::Foreground)
                 .show(ctx, |ui| {
-                    if circular_button(ui, btn_sizes.normal_radius * USB_BUTTON_SCALE, "USB",
-                        egui::Color32::from_rgba_unmultiplied(40, 80, 40, 180)) {
+                    if circular_button(ui, btn_sizes.normal_radius * USB_BUTTON_SCALE, "USB", button_green()) {
                         self.show_usb_export_dialog = true;
                     }
                 });
@@ -208,8 +204,7 @@ impl PixelSorterApp {
                 - egui::vec2(sizes.normal_radius, sizes.normal_radius))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if circular_button(ui, sizes.normal_radius, "Cancel",
-                    egui::Color32::from_rgba_unmultiplied(80, 40, 40, 180)) {
+                if circular_button(ui, sizes.normal_radius, "Cancel", button_red()) {
                     self.current_phase = Phase::Edit;
                     self.crop_rect = None;
                 }
@@ -223,8 +218,7 @@ impl PixelSorterApp {
             ) - egui::vec2(sizes.normal_radius, sizes.normal_radius))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if circular_button(ui, sizes.normal_radius, "Apply",
-                    egui::Color32::from_rgba_unmultiplied(40, 80, 40, 180)) {
+                if circular_button(ui, sizes.normal_radius, "Apply", button_green()) {
                     self.apply_crop_and_sort(ctx);
                 }
             });
