@@ -17,6 +17,7 @@ mod menus;
 mod viewport;
 mod buttons;
 mod styles;
+mod camera;
 
 // Re-export public types
 pub use state::{Phase, DragState};

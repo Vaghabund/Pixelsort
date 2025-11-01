@@ -1,5 +1,4 @@
 /// Centralized UI styling constants for consistent look across the app
-
 /// Menu styling configuration
 pub struct MenuStyle {
     pub width: f32,

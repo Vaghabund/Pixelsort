@@ -1,6 +1,5 @@
 // Hardware domain - interfaces to physical hardware components
 
-pub mod camera;
 pub mod camera_controller;
 pub mod ups_monitor;
 

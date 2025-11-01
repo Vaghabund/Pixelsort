@@ -104,6 +104,7 @@ impl PixelSorterApp {
         }
     }
 
+    #[cfg(target_os = "linux")]
     fn copy_directory<P: AsRef<std::path::Path>>(src: P, dst: P) -> Result<(), Box<dyn std::error::Error>> {
         let src = src.as_ref();
         let dst = dst.as_ref();

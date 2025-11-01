@@ -155,11 +155,7 @@ fn voltage_to_percentage(voltage: f32, min_voltage: f32) -> f32 {
     // 8.4V = 100%, 6.4V = 0%
     let max_voltage = 8.4;
     
-    let percentage = ((voltage - min_voltage) / (max_voltage - min_voltage) * 100.0)
-        .max(0.0)
-        .min(100.0);
-    
-    percentage
+    ((voltage - min_voltage) / (max_voltage - min_voltage) * 100.0).clamp(0.0, 100.0)
 }
 
 /// Read battery voltage from I2C UPS HAT
