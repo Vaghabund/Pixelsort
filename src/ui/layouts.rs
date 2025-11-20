@@ -4,8 +4,8 @@
 /// (Colors/appearance are in styles.rs)
 use crate::PixelSorterApp;
 use crate::ui::state::Phase;
-use crate::ui::components::{circular_button, circular_button_default, vertical_slider, slider_knob_radius};
-use crate::ui::styles::{ButtonSizes, SliderSizes, button_dark, button_green, button_red};
+use crate::ui::components::{circular_button, circular_button_default, circular_button_light, vertical_slider, slider_knob_radius};
+use crate::ui::styles::{ButtonSizes, SliderSizes, button_dark, button_green, button_red, button_fill_normal};
 use crate::processing::SortingAlgorithm;
 use eframe::egui;
 
@@ -24,7 +24,7 @@ const EDIT_BUTTON_COLUMNS: f32 = 3.0;  // Number of button columns (for New butt
 // Edit Phase - Slider positioning
 const SLIDER_TOP_PADDING_MULTIPLIER: f32 = 3.0;    // Top padding (spacing * this value + knob radius)
 const SLIDER_BOTTOM_PADDING_MULTIPLIER: f32 = 5.0; // Bottom padding (spacing * this value)
-const SLIDER_SPACING_BETWEEN: f32 = 5.0;          // Horizontal space between Threshold and Hue sliders
+const SLIDER_SPACING_BETWEEN: f32 = 40.0;          // Horizontal space between Threshold and Hue sliders
 
 // Slider value ranges
 const THRESHOLD_MIN: f32 = 0.0;    // Minimum threshold value
@@ -110,7 +110,7 @@ impl PixelSorterApp {
             .fixed_pos(egui::pos2(btn_sizes.spacing, row1_y))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if circular_button_default(ui, btn_sizes.normal_radius, self.current_algorithm.name()) {
+                if circular_button_light(ui, btn_sizes.normal_radius, self.current_algorithm.name(), button_fill_normal()) {
                     self.cycle_algorithm();
                     self.apply_pixel_sort(ctx);
                 }
@@ -124,7 +124,7 @@ impl PixelSorterApp {
             ))
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
-                if circular_button_default(ui, btn_sizes.normal_radius, self.sorting_params.sort_mode.name()) {
+                if circular_button_light(ui, btn_sizes.normal_radius, self.sorting_params.sort_mode.name(), button_fill_normal()) {
                     self.sorting_params.sort_mode = self.sorting_params.sort_mode.next();
                     self.apply_pixel_sort(ctx);
                 }

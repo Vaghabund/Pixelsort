@@ -97,9 +97,67 @@ pub fn circular_button(
     response.clicked()
 }
 
-/// Circular button with default normal fill color
+/// Circular button with default normal fill color (white text for dark backgrounds)
 pub fn circular_button_default(ui: &mut egui::Ui, radius: f32, text: &str) -> bool {
     circular_button(ui, radius, text, button_fill_normal())
+}
+
+/// Circular button with light background and dark text
+pub fn circular_button_light(
+    ui: &mut egui::Ui, 
+    radius: f32, 
+    text: &str, 
+    base_fill: egui::Color32
+) -> bool {
+    let size = egui::vec2(radius * 2.0, radius * 2.0);
+    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+
+    if ui.is_rect_visible(rect) {
+        let painter = ui.painter();
+        let center = rect.center();
+
+        // Apply scale transform on press
+        let scale = if response.is_pointer_button_down_on() { BUTTON_PRESS_SCALE } else { 1.0 };
+        let scaled_radius = radius * scale;
+
+        // Determine colors based on interaction state
+        let fill_color = if response.is_pointer_button_down_on() {
+            button_fill_active()
+        } else if response.hovered() {
+            button_fill_hover()
+        } else {
+            base_fill
+        };
+
+        // Draw shadow for depth
+        painter.circle(
+            center + egui::vec2(BUTTON_SHADOW_OFFSET_X, BUTTON_SHADOW_OFFSET_Y),
+            scaled_radius,
+            egui::Color32::from_black_alpha(BUTTON_SHADOW_ALPHA),
+            egui::Stroke::NONE,
+        );
+
+        // Draw main circle with subtle border
+        painter.circle(
+            center,
+            scaled_radius,
+            fill_color,
+            egui::Stroke::new(BUTTON_BORDER_WIDTH, button_border()),
+        );
+
+        // Draw text in center with DARK color
+        let font_id = egui::FontId::proportional(radius * BUTTON_TEXT_SIZE_RATIO);
+        let galley = painter.layout_no_wrap(text.to_string(), font_id, egui::Color32::from_rgb(20, 20, 20));
+        let text_pos = center - galley.size() / 2.0;
+        painter.galley(text_pos, galley);
+
+        // Change cursor on hover
+        if response.hovered() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+        }
+    }
+
+    response.clicked()
 }
 
 // ============================================================================

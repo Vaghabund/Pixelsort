@@ -10,7 +10,7 @@ impl PixelSorterApp {
     pub fn render_shutdown_button(&mut self, ctx: &egui::Context, _screen_rect: egui::Rect) {
         egui::Area::new("shutdown_button")
             .anchor(egui::Align2::LEFT_TOP, egui::vec2(UI_PADDING, UI_PADDING))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Tooltip)
             .show(ctx, |ui| {
                 let button_size = 80.0; // Doubled from 40.0
                 let button_pos = ui.cursor().min;
