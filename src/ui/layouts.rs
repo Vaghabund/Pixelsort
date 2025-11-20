@@ -71,7 +71,7 @@ impl PixelSorterApp {
         // Take Picture button (large primary action)
         egui::Area::new("take_picture_btn")
             .fixed_pos(large_center - egui::vec2(sizes.large_radius, sizes.large_radius))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button_default(ui, sizes.large_radius, "") {
                     self.capture_and_sort(ctx);
@@ -81,7 +81,7 @@ impl PixelSorterApp {
         // Upload Image button (small secondary action)
         egui::Area::new("upload_btn")
             .fixed_pos(small_center - egui::vec2(sizes.small_radius, sizes.small_radius))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button_default(ui, sizes.small_radius, "Upload") {
                     self.load_image(ctx);
@@ -108,7 +108,7 @@ impl PixelSorterApp {
         // Algorithm button
         egui::Area::new("algo_btn")
             .fixed_pos(egui::pos2(btn_sizes.spacing, row1_y))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button_light(ui, btn_sizes.normal_radius, self.current_algorithm.name(), button_fill_normal()) {
                     self.cycle_algorithm();
@@ -122,7 +122,7 @@ impl PixelSorterApp {
                 btn_sizes.spacing + btn_sizes.normal_radius * 2.0 + btn_sizes.spacing, 
                 row1_y
             ))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button_light(ui, btn_sizes.normal_radius, self.sorting_params.sort_mode.name(), button_fill_normal()) {
                     self.sorting_params.sort_mode = self.sorting_params.sort_mode.next();
@@ -137,7 +137,7 @@ impl PixelSorterApp {
         // Crop button
         egui::Area::new("crop_btn")
             .fixed_pos(egui::pos2(btn_sizes.spacing, row2_y))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button(ui, btn_sizes.normal_radius, "Crop", button_dark()) {
                     self.current_phase = Phase::Crop;
@@ -151,7 +151,7 @@ impl PixelSorterApp {
                 btn_sizes.spacing + btn_sizes.normal_radius * 2.0 + btn_sizes.spacing, 
                 row2_y
             ))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button(ui, btn_sizes.normal_radius, "Iterate", button_dark()) {
                     self.save_and_continue_iteration(ctx);
@@ -164,7 +164,7 @@ impl PixelSorterApp {
                 btn_sizes.spacing + (btn_sizes.normal_radius * 2.0 + btn_sizes.spacing) * (EDIT_BUTTON_COLUMNS - 1.0), 
                 row2_y
             ))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button(ui, btn_sizes.normal_radius, "New", button_dark()) {
                     self.start_new_photo_session();
@@ -176,7 +176,7 @@ impl PixelSorterApp {
             let export_y = screen_rect.max.y - btn_sizes.normal_radius - btn_sizes.spacing / USB_BUTTON_Y_OFFSET_DIVISOR;
             egui::Area::new("export_btn")
                 .fixed_pos(egui::pos2(btn_sizes.spacing, export_y))
-                .order(egui::Order::Foreground)
+                .order(egui::Order::Background)
                 .show(ctx, |ui| {
                     if circular_button(ui, btn_sizes.normal_radius * USB_BUTTON_SCALE, "USB", button_green()) {
                         self.show_usb_export_dialog = true;
@@ -202,7 +202,7 @@ impl PixelSorterApp {
         egui::Area::new("cancel_crop_btn")
             .fixed_pos(egui::pos2(left_x, start_y + sizes.normal_radius) 
                 - egui::vec2(sizes.normal_radius, sizes.normal_radius))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button(ui, sizes.normal_radius, "Cancel", button_red()) {
                     self.current_phase = Phase::Edit;
@@ -216,7 +216,7 @@ impl PixelSorterApp {
                 left_x,
                 start_y + sizes.normal_radius * CROP_APPLY_BUTTON_Y_MULTIPLIER + button_vertical_spacing
             ) - egui::vec2(sizes.normal_radius, sizes.normal_radius))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 if circular_button(ui, sizes.normal_radius, "Apply", button_green()) {
                     self.apply_crop_and_sort(ctx);
@@ -250,7 +250,7 @@ impl PixelSorterApp {
         let mut threshold = self.sorting_params.threshold;
         let threshold_changed = egui::Area::new("threshold_slider")
             .fixed_pos(egui::pos2(slider1_x, start_y))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     vertical_slider(ui, &mut threshold, THRESHOLD_MIN..=THRESHOLD_MAX, 
@@ -267,7 +267,7 @@ impl PixelSorterApp {
         let mut color_tint = self.sorting_params.color_tint;
         let hue_changed = egui::Area::new("hue_slider")
             .fixed_pos(egui::pos2(slider2_x, start_y))
-            .order(egui::Order::Foreground)
+            .order(egui::Order::Background)
             .show(ctx, |ui| {
                 ui.vertical(|ui| {
                     vertical_slider(ui, &mut color_tint, HUE_MIN..=HUE_MAX, 

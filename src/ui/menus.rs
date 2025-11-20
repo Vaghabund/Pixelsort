@@ -10,7 +10,7 @@ impl PixelSorterApp {
     pub fn render_shutdown_button(&mut self, ctx: &egui::Context, _screen_rect: egui::Rect) {
         egui::Area::new("shutdown_button")
             .anchor(egui::Align2::LEFT_TOP, egui::vec2(UI_PADDING, UI_PADDING))
-            .order(egui::Order::Tooltip)
+            .order(egui::Order::Debug)
             .show(ctx, |ui| {
                 let button_size = 80.0; // Doubled from 40.0
                 let button_pos = ui.cursor().min;
@@ -69,15 +69,17 @@ impl PixelSorterApp {
 
                 // Handle click
                 if response.clicked() {
+                    log::info!("Shutdown button clicked - opening menu");
                     self.show_shutdown_menu = true;
                 }
             });
 
         // Show shutdown confirmation menu
         if self.show_shutdown_menu {
+            log::debug!("Rendering power menu - show_shutdown_menu is true");
             let style = MenuStyle::power();
             
-            egui::Window::new("Power Options")
+            let response = egui::Window::new("Power Options")
                 .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
                 .collapsible(false)
                 .resizable(false)
@@ -137,6 +139,11 @@ impl PixelSorterApp {
                         }
                     });
                 });
+            
+            // Force window to top layer
+            if let Some(response) = response {
+                ctx.move_to_top(response.response.layer_id);
+            }
         }
     }
 
@@ -147,7 +154,7 @@ impl PixelSorterApp {
 
         let style = MenuStyle::developer();
 
-        egui::Window::new("🛠 Developer Menu")
+        let response = egui::Window::new("🛠 Developer Menu")
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
             .collapsible(false)
             .resizable(false)
@@ -303,6 +310,11 @@ impl PixelSorterApp {
                         .color(egui::Color32::GRAY)
                 );
             });
+        
+        // Force window to top layer
+        if let Some(response) = response {
+            ctx.move_to_top(response.response.layer_id);
+        }
     }
 
     pub fn render_usb_export_dialog(&mut self, ctx: &egui::Context) {
@@ -312,7 +324,7 @@ impl PixelSorterApp {
 
         let style = MenuStyle::usb_export();
 
-        egui::Window::new("💾 Export to USB")
+        let response = egui::Window::new("💾 Export to USB")
             .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
             .collapsible(false)
             .resizable(false)
@@ -387,5 +399,10 @@ impl PixelSorterApp {
                     }
                 });
             });
+        
+        // Force window to top layer
+        if let Some(response) = response {
+            ctx.move_to_top(response.response.layer_id);
+        }
     }
 }

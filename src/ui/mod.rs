@@ -328,6 +328,14 @@ impl eframe::App for PixelSorterApp {
 
         // Render UI
         self.render_ui(ctx);
+        
+        // Render overlays AFTER CentralPanel so they appear on top
+        let full_rect = ctx.screen_rect();
+        self.render_battery_indicator(ctx, full_rect);
+        self.render_shutdown_button(ctx, full_rect);
+        self.render_developer_menu(ctx, full_rect);
+        self.render_usb_export_dialog(ctx);
+        self.render_export_message(ctx, full_rect);
     }
 }
 
@@ -376,11 +384,6 @@ impl PixelSorterApp {
 
                 self.render_viewport(ui, full_rect, ctx);
                 self.render_button_overlay(ui, ctx, full_rect);
-                self.render_battery_indicator(ctx, full_rect);
-                self.render_shutdown_button(ctx, full_rect);
-                self.render_developer_menu(ctx, full_rect);
-                self.render_usb_export_dialog(ctx);
-                self.render_export_message(ctx, full_rect);
             });
     }
 }
