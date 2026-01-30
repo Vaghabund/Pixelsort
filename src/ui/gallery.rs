@@ -3,14 +3,16 @@ use crate::PixelSorterApp;
 use eframe::egui;
 use std::path::PathBuf;
 use std::fs;
+use std::collections::HashMap;
 
 // Gallery state that needs to be stored in PixelSorterApp
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GalleryState {
     pub images: Vec<GalleryImage>,
     pub selected_indices: Vec<usize>,
     pub scroll_offset: f32,
     pub needs_refresh: bool,
+    pub texture_cache: HashMap<PathBuf, egui::TextureHandle>,
 }
 
 #[derive(Debug, Clone)]
@@ -18,8 +20,6 @@ pub struct GalleryImage {
     pub path: PathBuf,
     pub filename: String,
     pub session_name: String,
-    pub texture: Option<egui::TextureHandle>,
-    pub thumbnail_loaded: bool,
 }
 
 impl GalleryState {
@@ -29,11 +29,14 @@ impl GalleryState {
             selected_indices: Vec::new(),
             scroll_offset: 0.0,
             needs_refresh: true,
+            texture_cache: HashMap::new(),
         }
     }
 
     pub fn refresh_images(&mut self) {
         self.images.clear();
+        // Clear texture cache when refreshing to avoid showing deleted images
+        self.texture_cache.clear();
         let sorted_dir = PathBuf::from("sorted_images");
         
         if !sorted_dir.exists() {
@@ -56,8 +59,6 @@ impl GalleryState {
                                     path: path.clone(),
                                     filename,
                                     session_name: session_name.clone(),
-                                    texture: None,
-                                    thumbnail_loaded: false,
                                 });
                             }
                         }
@@ -126,6 +127,7 @@ impl GalleryState {
         
         self.selected_indices.clear();
         self.needs_refresh = true;
+        self.refresh_images(); // Refresh immediately to update the view
         
         Ok(deleted_count)
     }
@@ -147,33 +149,43 @@ impl GalleryState {
                    (line.contains("exfat") || line.contains("vfat") || line.contains("ntfs")) {
                     if let Some(on_idx) = line.find(" on ") {
                         if let Some(type_idx) = line.find(" type ") {
-                            let mount_point = &line[on_idx + 4..type_idx];
+                            let mount_point = line[on_idx + 4..type_idx].trim();
                             let usb_path = PathBuf::from(mount_point);
                             
-                            // Test if writable
+                            // Test if writable with proper cleanup
                             let test_file = usb_path.join(".pixelsort_test");
-                            if fs::write(&test_file, "test").is_ok() {
-                                let _ = fs::remove_file(&test_file);
-                                
-                                // Create export directory
-                                let dest_dir = usb_path.join("pixelsort_export");
-                                fs::create_dir_all(&dest_dir)
-                                    .map_err(|e| format!("Failed to create export dir: {}", e))?;
-                                
-                                // Copy selected images
-                                let mut copied_count = 0;
-                                for index in &self.selected_indices {
-                                    if *index < self.images.len() {
-                                        let image = &self.images[*index];
-                                        let dest_path = dest_dir.join(&image.filename);
-                                        if fs::copy(&image.path, &dest_path).is_ok() {
-                                            copied_count += 1;
-                                        }
+                            match fs::write(&test_file, "test") {
+                                Ok(_) => {
+                                    // Clean up test file
+                                    let _ = fs::remove_file(&test_file);
+                                }
+                                Err(_) => continue, // Try next mount point
+                            }
+                            
+                            // Create export directory
+                            let dest_dir = usb_path.join("pixelsort_export");
+                            fs::create_dir_all(&dest_dir)
+                                .map_err(|e| format!("Failed to create export dir: {}", e))?;
+                            
+                            // Copy selected images with session-based subdirectories
+                            let mut copied_count = 0;
+                            for index in &self.selected_indices {
+                                if *index < self.images.len() {
+                                    let image = &self.images[*index];
+                                    
+                                    // Create session subdirectory to avoid filename conflicts
+                                    let session_dest = dest_dir.join(&image.session_name);
+                                    fs::create_dir_all(&session_dest)
+                                        .map_err(|e| format!("Failed to create session dir: {}", e))?;
+                                    
+                                    let dest_path = session_dest.join(&image.filename);
+                                    if fs::copy(&image.path, &dest_path).is_ok() {
+                                        copied_count += 1;
                                     }
                                 }
-                                
-                                return Ok(copied_count);
                             }
+                            
+                            return Ok(copied_count);
                         }
                     }
                 }
@@ -578,7 +590,7 @@ impl PixelSorterApp {
                         let mut current_x = 0.0;
                         let mut current_y = 0.0;
                         
-                        for (index, image) in self.gallery_state.images.iter().enumerate() {
+                        for (index, image) in self.gallery_state.images.clone().iter().enumerate() {
                             let pos = egui::pos2(current_x, current_y);
                             let rect = egui::Rect::from_min_size(pos, egui::vec2(thumbnail_size, thumbnail_size + 50.0));
                             
@@ -599,27 +611,34 @@ impl PixelSorterApp {
                                 bg_color,
                             );
                             
-                            // Try to load and display thumbnail
-                            if let Ok(img) = image::open(&image.path) {
-                                // Resize to thumbnail
-                                let thumb = img.thumbnail(thumbnail_size as u32, thumbnail_size as u32);
-                                let rgba = thumb.to_rgba8();
-                                let size = [rgba.width() as usize, rgba.height() as usize];
-                                let pixels = rgba.as_flat_samples();
-                                let color_image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
-                                
-                                let texture_id = format!("gallery_thumb_{}", index);
-                                let texture = ctx.load_texture(&texture_id, color_image, Default::default());
+                            // Try to get texture from cache, or load and cache it
+                            if !self.gallery_state.texture_cache.contains_key(&image.path) {
+                                // Load thumbnail only if not in cache
+                                if let Ok(img) = image::open(&image.path) {
+                                    // Resize to thumbnail
+                                    let thumb = img.thumbnail(thumbnail_size as u32, thumbnail_size as u32);
+                                    let rgba = thumb.to_rgba8();
+                                    let size = [rgba.width() as usize, rgba.height() as usize];
+                                    let pixels = rgba.as_flat_samples();
+                                    let color_image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
+                                    
+                                    let texture_id = format!("gallery_thumb_{}", index);
+                                    let texture = ctx.load_texture(&texture_id, color_image, Default::default());
+                                    self.gallery_state.texture_cache.insert(image.path.clone(), texture);
+                                }
+                            }
+                            
+                            // Display cached texture if available
+                            if let Some(texture) = self.gallery_state.texture_cache.get(&image.path) {
+                                let thumb_size_vec = texture.size_vec2();
                                 
                                 // Center the thumbnail in the square
-                                let thumb_w = thumb.width() as f32;
-                                let thumb_h = thumb.height() as f32;
-                                let offset_x = (thumbnail_size - thumb_w) / 2.0;
-                                let offset_y = (thumbnail_size - thumb_h) / 2.0;
+                                let offset_x = (thumbnail_size - thumb_size_vec.x) / 2.0;
+                                let offset_y = (thumbnail_size - thumb_size_vec.y) / 2.0;
                                 
                                 let thumb_rect = egui::Rect::from_min_size(
                                     egui::pos2(pos.x + offset_x, pos.y + offset_y),
-                                    egui::vec2(thumb_w, thumb_h),
+                                    thumb_size_vec,
                                 );
                                 
                                 ui.painter().image(
@@ -656,8 +675,10 @@ impl PixelSorterApp {
                             // Draw filename below thumbnail
                             let filename_y = pos.y + thumbnail_size + 10.0;
                             let font = egui::FontId::proportional(14.0);
-                            let text = if image.filename.len() > 30 {
-                                format!("{}...", &image.filename[..27])
+                            let text = if image.filename.chars().count() > 30 {
+                                // UTF-8 safe truncation using char iterator
+                                let truncated: String = image.filename.chars().take(27).collect();
+                                format!("{}...", truncated)
                             } else {
                                 image.filename.clone()
                             };
