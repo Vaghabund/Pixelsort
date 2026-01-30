@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Gallery View**: New image organization system accessible from Edit phase
+  - Grid view for browsing all pixel-sorted images
+  - Touch-friendly selection system (tap to select/deselect)
+  - Batch operations: Select All, Clear Selection
+  - Export selected images to USB drive (Linux only)
+  - Delete selected images with automatic cleanup of empty folders
+  - Refresh button to update gallery after creating new images
+  - Shows image count and selection counter
+  - Dark theme consistent with main UI
+- Gallery button in Edit phase for accessing the image viewer
 - Sleep mode: Activates after 5 minutes of inactivity, shows dim Harpy logo
 - Auto-update on launch: Checks GitHub for updates before starting
 - Kiosk mode: Fullscreen borderless window with hidden cursor
