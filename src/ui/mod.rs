@@ -18,6 +18,7 @@ mod menus;
 mod viewport;
 mod styles;
 mod camera;
+mod gallery;
 
 // Re-export public types
 pub use state::{Phase, DragState};
@@ -93,6 +94,9 @@ pub struct PixelSorterApp {
     // Developer menu
     pub show_developer_menu: bool,
     
+    // Gallery state
+    pub gallery_state: gallery::GalleryState,
+    
     // Other
     pub tint_enabled: bool,
 }
@@ -151,6 +155,7 @@ impl PixelSorterApp {
             show_usb_export_dialog: false,
             usb_export_delete_after: false,
             show_developer_menu: false,
+            gallery_state: gallery::GalleryState::new(),
             tint_enabled: false,
         }
     }

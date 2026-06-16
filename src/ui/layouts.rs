@@ -48,6 +48,7 @@ impl PixelSorterApp {
             Phase::Input => self.render_input_layout(ctx, screen_rect),
             Phase::Edit => self.render_edit_layout(ctx, screen_rect),
             Phase::Crop => self.render_crop_layout(ctx, screen_rect),
+            Phase::Gallery => {}, // Gallery handles its own layout
         }
     }
 
@@ -168,6 +169,19 @@ impl PixelSorterApp {
             .show(ctx, |ui| {
                 if circular_button(ui, btn_sizes.normal_radius, "New", button_dark()) {
                     self.start_new_photo_session();
+                }
+            });
+
+        // Gallery button (right of New)
+        egui::Area::new("gallery_btn")
+            .fixed_pos(egui::pos2(
+                btn_sizes.spacing + (btn_sizes.normal_radius * 2.0 + btn_sizes.spacing) * EDIT_BUTTON_COLUMNS, 
+                row2_y
+            ))
+            .order(egui::Order::Background)
+            .show(ctx, |ui| {
+                if circular_button(ui, btn_sizes.normal_radius, "Gallery", button_dark()) {
+                    self.current_phase = Phase::Gallery;
                 }
             });
 

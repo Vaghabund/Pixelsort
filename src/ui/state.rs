@@ -3,6 +3,7 @@ pub enum Phase {
     Input,
     Edit,
     Crop,
+    Gallery,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
